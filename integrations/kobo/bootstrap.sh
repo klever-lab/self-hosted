@@ -6,10 +6,10 @@ export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 onboard=/mnt/onboard/.adds/self-hosted-kobo
 install_root=/usr/local/tailscale
 mkdir -p "$onboard"
-status() { printf '%s\n' "$1" > "$onboard/status.txt"; }
+status() { printf '%s\n' "$1" > "$onboard/status.log"; }
 backend_check() {
   grep -E 'iptables not found|falling back to nftables|netfilter running in|wgengine.NewUserspaceEngine|Engine creation' \
-    "$install_root/state/daemon.log" > "$onboard/backend-check.txt" 2>/dev/null || true
+    "$install_root/state/daemon.log" > "$onboard/backend-check.log" 2>/dev/null || true
 }
 trap backend_check EXIT
 trap 'status "Setup stopped. Reconnect USB for the recorded installation result."; exit 1' HUP INT TERM
@@ -67,4 +67,4 @@ if wget -q -T 15 -O /dev/null "https://$book_name/login" > "$onboard/books-check
 else
   status 'Tailscale connected; the private Books HTTPS check needs investigation.'
 fi
-/usr/local/tailscale/bin/tailscale ip -4 > "$onboard/tailscale-ip.txt"
+/usr/local/tailscale/bin/tailscale ip -4 > "$onboard/tailscale-ip.log"

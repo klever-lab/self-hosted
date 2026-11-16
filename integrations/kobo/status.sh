@@ -1,5 +1,5 @@
 #!/bin/sh
-# Show current connectivity; status.txt records only the last setup attempt.
+# Show current connectivity; status.log records only the last setup attempt.
 set -eu
 export PATH=/usr/sbin:/usr/bin:/sbin:/bin
 

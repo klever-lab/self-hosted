@@ -148,3 +148,23 @@ matched exactly and the temporary reader file was removed. The live status helpe
 reported Wi-Fi connected and private Books HTTPS reachable. The reader briefly
 went offline during authentication; after the operator woke it, the original SSH
 session completed and subsequent commands and SFTP succeeded.
+
+During that session, the operator reported repeated Wi-Fi drops. Reader logs
+recorded local termination of the DHCP and WPA processes at 05:48:40 and 05:52:38;
+the latter followed a successful reconnection at 05:50:43. WPA reported reason 3
+with `locally_generated=1`. This is consistent with a local idle shutdown. It does
+not establish a router or Tailscale transport fault. The Wi-Fi keep-on and normal
+power-saving menu controls use NickelMenu 0.6.0's native `force_wifi` setting.
+The updated menu was installed over SFTP and applied by an atomic rename from
+outside NickelMenu's configuration directory; its remote SHA-256 matched the
+reviewed source. All 23 repository tests and ShellCheck passed. The controls'
+effect was then checked after the operator selected **Keep Wi-Fi on** and toggled
+Wi-Fi. `ForceWifiOn=true` persisted, and all 13 SSH/carrier checks passed over
+180 seconds, beyond the earlier 115-second cutoff. This checks one idle interval;
+repeated sleep and network changes remain separate checks.
+
+A stable copy of the live reader database passed SQLite integrity checks and
+identified three setup TXT documents in the catalog: `backend-check`, `status`
+and `storage-check`, all under `.adds/self-hosted-kobo`. Diagnostic outputs now
+use `.log`, and the saved-result and storage-command tests exercise those paths.
+Removing the old TXT filenames and refreshing the native catalog remain pending.

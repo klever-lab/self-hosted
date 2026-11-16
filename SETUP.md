@@ -106,8 +106,8 @@ It provides **Set up Tailscale**, live **Tailscale status**, **Setup result**,
 Eject, unplug, wait for NickelMenu to install, enable Wi-Fi, then run setup. The
 bootstrap consumes the key into private system storage before authentication,
 deletes it on success and checks private Books HTTPS without bypassing certificate
-validation. Reconnect USB to read `status.txt` and the selected firewall-backend
-messages in `backend-check.txt`. Verify native backend initialization and private
+validation. Reconnect USB to read `status.log` and the selected firewall-backend
+messages in `backend-check.log`. Verify native backend initialization and private
 HTTPS connectivity; netfilter mode `off` alone does not establish backend support.
 
 Keep downloaded archives, prepared device files, enrollment keys and identity

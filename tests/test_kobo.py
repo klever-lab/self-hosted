@@ -58,7 +58,7 @@ class KoboCommandTests(unittest.TestCase):
         shutil.copyfile(ROOT / 'integrations/kobo/status.sh', self.setup / 'status.sh')
         shutil.copyfile(ROOT / 'integrations/kobo/maintenance.sh', self.setup / 'maintenance.sh')
         (self.setup / 'books-host').write_text('100.64.0.1\nbooks.fixture.ts.net\n')
-        (self.setup / 'status.txt').write_text('Previous setup completed.\n')
+        (self.setup / 'status.log').write_text('Previous setup completed.\n')
         (self.wifi / 'carrier').write_text('1\n')
         (self.onboard / 'daemon-mode').write_text('running')
         (self.onboard / 'https-mode').write_text('reachable')
@@ -157,14 +157,15 @@ printf 'books 13394984 978000 12417024 8%% /mnt/onboard\\n'
         self.assertFalse((self.onboard / 'https-arguments').exists())
 
     def test_missing_setup_result_returns_a_readable_message(self):
-        (self.setup / 'status.txt').unlink()
+        (self.setup / 'status.log').unlink()
         self.check_output(self.run_menu('Setup result'), 'Saved setup result unavailable.')
 
     def test_storage_status_displays_and_saves_both_partitions(self):
         result = self.run_menu('Storage status')
         self.check_output(result, 'System free: 649.0 MiB')
         self.assertIn('Books free: 12126.0 MiB', result.stdout)
-        self.assertEqual((self.setup / 'storage-check.txt').read_text(), result.stdout)
+        self.assertEqual((self.setup / 'storage-check.log').read_text(), result.stdout)
+        self.assertFalse((self.setup / 'storage-check.txt').exists(), 'Diagnostics must not appear as TXT books')
 
     def test_enable_laptop_access_only_changes_ssh_and_incoming_connections(self):
         self.check_output(self.run_menu('Enable laptop access'), 'Laptop access enabled over Tailscale.')

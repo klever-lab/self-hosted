@@ -2,5 +2,8 @@ menu_item :main :Set up Tailscale :cmd_spawn :quiet:/bin/sh /mnt/onboard/.adds/s
 menu_item :main :Tailscale status :cmd_output :9000:/bin/sh /mnt/onboard/.adds/self-hosted-kobo/status.sh
 menu_item :main :Enable laptop access :cmd_output :9000:/bin/sh /mnt/onboard/.adds/self-hosted-kobo/maintenance.sh enable
 menu_item :main :Disable laptop access :cmd_output :9000:/bin/sh /mnt/onboard/.adds/self-hosted-kobo/maintenance.sh disable
-menu_item :main :Setup result :cmd_output :1500:cat /mnt/onboard/.adds/self-hosted-kobo/status.txt 2>/dev/null || printf 'Saved setup result unavailable. Use Tailscale status for live connectivity.\n'
-menu_item :main :Storage status :cmd_output :2000:df -Pk / /mnt/onboard | awk 'NR > 1 {printf "%s free: %.1f MiB\n", ($6 == "/" ? "System" : "Books"), $4 / 1024}' | tee /mnt/onboard/.adds/self-hosted-kobo/storage-check.txt
+menu_item :main :Keep Wi-Fi on :nickel_setting :enable:force_wifi
+menu_item :main :Normal Wi-Fi power saving :nickel_setting :disable:force_wifi
+menu_item :main :Setup result :cmd_output :1500:cat /mnt/onboard/.adds/self-hosted-kobo/status.log 2>/dev/null || printf 'Saved setup result unavailable. Use Tailscale status for live connectivity.\n'
+menu_item :main :Storage status :cmd_output :2000:df -Pk / /mnt/onboard | awk 'NR > 1 {printf "%s free: %.1f MiB\n", ($6 == "/" ? "System" : "Books"), $4 / 1024}' | tee /mnt/onboard/.adds/self-hosted-kobo/storage-check.log
+menu_item :main :Refresh local books :nickel_misc :rescan_books_full

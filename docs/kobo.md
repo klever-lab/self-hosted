@@ -63,12 +63,26 @@ settings, databases and `/usr/local/tailscale/state` intact; updating the menu o
 status helper does not require reinstalling or enrolling Tailscale again. Do not
 write onboard storage remotely while it is exported over USB.
 
+Kobo can shut Wi-Fi down when its own network workflow is idle, even while an
+SSH client is waiting. For remote work, choose **Keep Wi-Fi on**, then turn Wi-Fi
+off and back on once. This uses NickelMenu's native
+[`DeveloperSettings.ForceWifiOn` control](https://github.com/pgaskin/NickelMenu/blob/v0.6.0/res/doc#L98);
+the setting takes effect on the next Wi-Fi toggle. It keeps the radio available
+and uses more battery. Choose **Normal Wi-Fi power saving** and toggle Wi-Fi again
+when finished. These controls change Wi-Fi idle behavior, independently of SSH
+authorization and the reader's screen sleep settings.
+
 **Disable laptop access** disables SSH and blocks incoming Tailscale connections;
 library access remains available. Access settings persist across daemon restarts.
 Running **Set up Tailscale** restores the installer's default blocked settings,
 so enable laptop access again afterward if needed. Tailscale's SSH server handles
 only tailnet traffic and opens no public or Wi-Fi LAN SSH listener. Native SSH,
 SFTP and private library access passed the [physical reader checks](verification.md#clara-bw-installation-and-pairing).
+
+Setup and storage diagnostics use `.log` filenames so Kobo does not import them
+as TXT books. After removing or renaming old local files, **Refresh local books**
+runs Kobo's full local import workflow to update the catalog. It does not request
+a Calibre-Web library sync. The local import can briefly pause remote access.
 
 ## Library synchronization
 
@@ -90,7 +104,7 @@ current connectivity. A running Tailscale process needs Wi-Fi to reach the serve
 
 If the reader reports that it is full, **NickelMenu → Storage status** displays
 free space on both the system and book partitions and saves the result to
-`.adds/self-hosted-kobo/storage-check.txt`. Check the actual space, database health
+`.adds/self-hosted-kobo/storage-check.log`. Check the actual space, database health
 and configured sync endpoint before removing books: the first pairing attempt
 on the Clara BW showed this warning with 12.7 GB free and the endpoint reverted
 to Kobo's store. No Calibre-Web book sync reached the server during that attempt.
