@@ -29,7 +29,7 @@ case "$book_name" in
   books.*.ts.net) ;;
   *) printf '\nUnexpected library hostname.\n'; exit 1 ;;
 esac
-if wget -q -T 5 -O /dev/null "https://$book_name/login" 2>/dev/null; then
+if timeout 5 wget -q -T 4 -O /dev/null "https://$book_name/login" 2>/dev/null; then
   printf '\nPrivate library reachable over Tailscale.\n'
 else
   printf '\nPrivate library unreachable. Wait for reconnection, then check again.\n'

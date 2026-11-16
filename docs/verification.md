@@ -94,3 +94,12 @@ result remains available separately under **Setup result**.
 The live status display, on-demand download setting and opening a book still need
 verification on the physical screen. Recovery after sleep and Wi-Fi changes has
 not been exercised.
+
+The first live status check exposed an invalid 10,000 ms NickelMenu timeout;
+version 0.6.0 accepts values strictly below 10,000 ms. A missing setup result also
+caused NickelMenu to display a process error. The menu now uses 9,000 ms and shows
+a readable fallback when the saved result cannot be read. The HTTPS probe has
+an outer five-second deadline so a stalled request fits within the menu timeout.
+Regression tests reproduced both reported errors and the stalled-request case
+before these fixes, then passed with the corrected commands. Native readback of
+the final correction and the screen results remain separate physical checks.

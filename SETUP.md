@@ -103,3 +103,22 @@ HTTPS connectivity; netfilter mode `off` alone does not establish backend suppor
 Keep downloaded archives, prepared device files, enrollment keys and identity
 backups under the protected operator directory, outside both checkouts. When
 updating the fork, validate it and update the pinned commit here together.
+
+## Tests
+
+On Linux, install `bubblewrap` and `shellcheck`, then run:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with-requirements requirements.txt python -m unittest discover -s tests -v
+shellcheck integrations/kobo/bootstrap.sh integrations/kobo/status.sh
+```
+
+The Kobo tests enforce NickelMenu 0.6.0's timeout limits and execute the shipped
+menu commands and status helper in isolated namespaces with synthetic Wi-Fi,
+daemon and HTTPS responses. They cover missing setup results, stalled commands,
+live connectivity and storage output. They fail if bubblewrap is unavailable;
+they do not use a reader, credentials or network access.
+
+The test workflow runs the full suite on pushes and pull requests using a standard
+GitHub-hosted runner. These tests do not replace physical checks of the Kobo UI,
+firmware behavior, reconnects or book downloads.
