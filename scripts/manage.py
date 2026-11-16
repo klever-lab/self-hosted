@@ -117,10 +117,14 @@ def vpn(cfg):
     profile = configparser.ConfigParser()
     profile.optionxform = str
     profile.read(profile_path)
-    host, port = profile['Peer']['Endpoint'].rsplit(':', 1)
-    address = cfg.get('wireguard_endpoint_ip') or socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)[0][4][0]
+    endpoint = profile['Peer']['Endpoint']
+    host, port = endpoint.rsplit(':', 1)
+    # A cached IP belongs to one endpoint; a replacement profile may name another.
+    cached = cfg.get('wireguard_endpoint_ip') if cfg.get('wireguard_endpoint') == endpoint else None
+    address = cached or socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)[0][4][0]
     if not ipaddress.ip_address(address).is_global:
         raise ValueError('The VPN endpoint must have a public address')
+    cfg['wireguard_endpoint'] = endpoint
     cfg['wireguard_endpoint_ip'] = address
     private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
     peer = {'address': address, 'port': int(port), 'public_key': profile['Peer']['PublicKey'],

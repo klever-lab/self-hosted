@@ -7,7 +7,9 @@ Use the existing Guaranine kubeconfig. The cluster needs a Ready worker, the
 the Guaranine operator directory and is used only for single-use gateway enrollment.
 
 1. Save a **separate** WireGuard profile for qBittorrent outside the checkout with
-   mode `0600`. Never run the same WireGuard private key in two clients.
+   mode `0600`. Choose a [P2P-enabled Windscribe location](https://windscribe.com/knowledge-base/articles/does-windscribe-allow-peer-to-peer-p2p-traffic);
+   some locations, including Boston - MIT, block torrent traffic.
+   Never run the same WireGuard private key in two clients.
 2. Find the worker with `kubectl get nodes` and initialize:
 
    ```bash
@@ -49,6 +51,14 @@ To deploy an application independently:
 
 Deploying both applications also installs the book-import integration. The shared
 `components/edge` directory contains the userspace Tailscale gateway resources.
+
+To change qBittorrent's VPN server, replace the profile referenced by
+`wireguard_profile` in the protected `config.json`, keeping it outside the checkout
+with mode `0600`, then run `./self-hosted deploy qbittorrent`. Deployment refreshes
+the cached endpoint address when the profile names a different endpoint and updates
+the VPN and its egress policy together. The restart preserves torrents, downloads
+and the gateway identity. An HTTPS check alone does not establish P2P connectivity;
+check that peers connect and download progress advances.
 
 The administrator username/password are retained in protected
 `access.json`. If you change qBittorrent's password through its UI, update that file

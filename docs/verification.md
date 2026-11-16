@@ -32,6 +32,24 @@ are recorded below. A complete restore onto a replacement worker has not been
 exercised. Download payloads are excluded
 from the application-state backup, as described in [operations](operations.md).
 
+## qBittorrent VPN server replacement
+
+Verified on 2026-11-16 UTC:
+
+- Replaced the Boston - MIT profile with Toronto - Comfort Zone while retaining
+  qBittorrent's existing key. Windscribe lists Boston - MIT among its
+  [locations that block P2P](https://windscribe.com/knowledge-base/articles/does-windscribe-allow-peer-to-peer-p2p-traffic).
+- The existing magnet download acquired metadata, connected to peers, and began
+  transferring payload data. DHT discovery also populated. The earlier HTTPS and
+  web-seed checks alone did not establish ordinary peer connectivity.
+- The live VPN endpoint matched the restricted egress policy, and a direct
+  internet connection remained blocked. Both restarted pods became Ready.
+- qBittorrent's volume bindings, original torrent, and gateway identity were
+  preserved. Jellyfin's VPN Secret and its gateway deployment were unchanged;
+  the Books gateway identity and deployment were also unchanged.
+- All 23 tests, including regression coverage for replacing a cached VPN endpoint,
+  passed. Kubernetes admission and sing-box configuration checks passed.
+
 ## Private access verification
 
 This records the initial lockdown. Jellyfin's separate repository subsequently
