@@ -34,7 +34,7 @@ for field, value in {
     'config_anonbrowse': 0,
     'config_public_reg': 0,
     'config_kobo_sync': True,
-    'config_kobo_proxy': False,
+    'config_kobo_proxy': True,
     'config_binariesdir': '',
     'config_converterpath': '',
     'config_kepubifypath': '/tools',

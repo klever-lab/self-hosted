@@ -17,8 +17,16 @@ For each Kobo:
    Calibre-Web endpoint and set `image_host` to the Books HTTPS origin. Save,
    eject, then sync the reader over Wi-Fi.
 
-For downloads only when selected, set `MaxDownload=0` under `[FeatureSettings]`
-in the reader configuration, then restart the reader. Kobo normally pre-downloads
+On a paired reader with stale cover URLs, keep the same `api_endpoint` and set
+`image_url_template` to that endpoint followed by
+`/{ImageId}/{Width}/{Height}/false/image.jpg`. Set
+`image_url_quality_template` to the same endpoint followed by
+`/{ImageId}/{Width}/{Height}/{Quality}/{IsGreyscale}/image.jpg`.
+These values contain the device token and belong only in the private reader
+configuration. Restart once after correcting them and verify that they persist.
+
+The Clara BW currently uses `MaxDownload=0` under `[FeatureSettings]` to request
+downloads only when selected. Changes require a reader restart. Kobo normally pre-downloads
 its [five most recent books](https://help.kobo.com/hc/en-us/articles/360017605034-Download-all-your-books-onto-your-Kobo-eReader).
 The override is [reported by a Clara BW owner](https://www.mobileread.com/forums/showthread.php?t=370147&page=2)
 and still needs a manual download check on this firmware. It does not remove
@@ -86,9 +94,10 @@ a Calibre-Web library sync. The local import can briefly pause remote access.
 
 ## Library synchronization
 
-The integration serves the self-hosted library; proxying the official Kobo store is
-disabled. Existing store purchases and device-side behavior should be checked on
-the actual Kobo before relying on it as a replacement for the store's sync endpoint.
+The integration serves the self-hosted library and enables Calibre-Web's upstream
+Kobo-store compatibility option. Books and covers in Calibre-Web are served
+locally; requests for existing Kobo purchases can use the official store. This
+preserves access to purchases that have not been imported as usable local files.
 Book deletion and read-state behavior follow the upstream implementation.
 
 After pairing, safely eject the reader, unplug USB, enable Wi-Fi and use the normal
@@ -96,6 +105,19 @@ After pairing, safely eject the reader, unplug USB, enable Wi-Fi and use the nor
 The device account syncs the whole library unless **Sync only selected shelves**
 is enabled in its profile. For selective sync, enable that setting before the
 first sync and mark the desired shelves for Kobo synchronization.
+
+Manage routine changes in Calibre-Web: upload an EPUB or KEPUB, or edit an
+existing book's metadata and cover, then sync the Kobo. Keep the existing book
+record when correcting it so its UUID and pairing with the reader remain intact.
+The reader can then download the books selected for offline reading. Cover
+changes do not require reinstalling Tailscale or editing the reader configuration.
+
+Native sync supports EPUB and KEPUB; the server converts EPUB with its bundled
+kepubify. DRM-protected imports need a readable replacement or the original
+purchased copy through Kobo. Keep an unusable imported duplicate out of the
+device's catalog by archiving it while signed in as the device account. This
+retains the library record and file. PDF and other unsupported sync formats need
+a separate transfer workflow; see the upstream guide below.
 
 **NickelMenu → Tailscale status** checks the current Wi-Fi link, daemon and private
 library HTTPS connection. Wait for the library-reachable result before syncing.

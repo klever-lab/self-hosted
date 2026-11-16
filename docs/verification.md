@@ -175,3 +175,38 @@ setup-document entries. All 3,264 pre-existing real book records retained the
 same IDs, titles, read status and reading percentage. Another 51 UUID catalog
 records were present, all marked not downloaded. The cleanup used the native
 import workflow and did not write the reader database directly.
+
+## In-place library and cover maintenance
+
+Verified on 2026-11-16 UTC, updating the existing setup without creating another
+library or reader backup at the operator's request:
+
+- All 259 library records now have valid cover images. Replaced 70 placeholders
+  or missing covers and five unreadable image files through Calibre-Web's normal
+  edit forms. Sources were 62 matching Gutenberg covers, five embedded EPUB
+  covers and eight publisher covers. The 75 corrected records retained their
+  IDs, UUIDs, titles, authors, identifiers and library paths.
+- All 510 EPUB/KEPUB archives passed complete ZIP integrity checks. Six imported
+  KEPUBs contain rights files and encrypted content. Their records and files were
+  retained, and the imported duplicates were archived for the device account
+  through the normal interface. Original Kobo purchases and their progress were
+  not edited. Archive integrity alone does not establish that encrypted content
+  can be read through Calibre-Web.
+- SHA-256 comparison found all 47 ordinary EPUBs on the reader already present
+  byte-for-byte in the library. The other 23 EPUBs were Kobo regulatory manuals;
+  no duplicate imports or device-file deletions were needed.
+- Enabled Calibre-Web's existing Kobo-store compatibility option. A private
+  library cover returned HTTP 200 with a valid JPEG; an unknown store cover
+  returned HTTP 307 to `cdn.kobo.com`. Books remains private to Tailscale.
+- Corrected both cover URL templates in the existing reader configuration while
+  preserving its API token and pairing. After a remote restart, the private
+  templates, enrolled address, `MaxDownload=0` and Wi-Fi keep-on setting persisted,
+  and the reader reconnected to private Books HTTPS.
+- Direct authenticated downloads of *The Trial* succeeded from both the laptop
+  and reader; the laptop received HTTP 200 and a 265,621-byte EPUB ZIP archive.
+  The initial screen check reported **Pending** before the remote restart.
+  Native cover display, opening the selected book and avoiding automatic
+  downloads still require confirmation in the reading interface.
+
+The repository checks passed all 26 tests, ShellCheck and whitespace validation.
+Private audit reports and downloaded cover assets remain outside Git.
