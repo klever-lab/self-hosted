@@ -65,17 +65,38 @@ to back up state before substantial changes.
 ## Kobo Tailscale source
 
 The Clara BW installation uses our fork, [klever-lab/kobo-tailscale](https://github.com/klever-lab/kobo-tailscale),
-pinned to commit `475e17318361a125c8911cb7f1ebc1e8f53292f2`:
+pinned to commit `68a13bf70ddf7d1f811f77a02d2cca6578664de3`:
 
 ```bash
 git clone https://github.com/klever-lab/kobo-tailscale.git "$HOME/kobo-tailscale"
-git -C "$HOME/kobo-tailscale" checkout --detach 475e17318361a125c8911cb7f1ebc1e8f53292f2
+git -C "$HOME/kobo-tailscale" checkout --detach 68a13bf70ddf7d1f811f77a02d2cca6578664de3
 ```
 
 Follow the fork's `clara-bw/README.md` for installation. It pins and verifies the
 official Tailscale archive. Check the reader's firmware and back up its settings
 before copying an installer to it; NickelMenu currently does not support firmware
 5.x. Physical installation and sync still need verification on the reader.
+
+Apply Guaranine's reviewed policy for `tag:guaranine-kobo` before enrollment. Its
+only service grant is Books HTTPS. Issue a single-use, preauthorized enrollment
+key for that tag, expiring within one hour; keep the operator API token off the
+reader. Preserve an existing reader identity when reinstalling.
+
+For a stock reader, stage the verified NickelMenu package as `.kobo/KoboRoot.tgz`,
+the pinned fork's Clara BW scripts and official ARM archive under
+`kobo-tailscale/clara-bw/`, and `integrations/kobo/bootstrap.sh` under
+`.adds/self-hosted-kobo/`. That directory also takes a temporary `auth.key` and a
+`books-host` file containing the gateway's Tailscale IPv4 address and full HTTPS
+hostname on separate lines. Keep these generated files outside Git.
+
+Add NickelMenu entries for **Set up Tailscale** (spawn the bootstrap script with
+`/bin/sh`) and **Tailscale status** (display `.adds/self-hosted-kobo/status.txt`).
+Eject, unplug, wait for NickelMenu to install, enable Wi-Fi, then run setup. The
+bootstrap consumes the key into private system storage before authentication,
+deletes it on success and checks private Books HTTPS without bypassing certificate
+validation. Reconnect USB to read `status.txt` and the selected firewall-backend
+messages in `backend-check.txt`. Keep the inherited firewall bundle in the fork
+until native backend initialization and authenticated routing have been verified.
 
 Keep downloaded archives, prepared device files, enrollment keys and identity
 backups under the protected operator directory, outside both checkouts. When

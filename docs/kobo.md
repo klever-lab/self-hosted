@@ -23,6 +23,13 @@ It preserves Kobo's DNS configuration, so private HTTPS names need a resolver or
 local hostname mapping that points to the server's Tailscale address. Keep the
 HTTPS hostname when configuring sync so certificate validation works.
 
+The reader has a separate Tailscale tag that permits only Books HTTPS. Its node
+identity and logs stay on the private system partition, and unsolicited tailnet
+connections, SSH and advertised routes are disabled. The installation bootstrap
+adds the Books hostname mapping without changing the official store sync endpoint.
+The fork's [security review](https://github.com/klever-lab/kobo-tailscale/blob/main/SECURITY.md)
+records its package checks, isolated tests and remaining physical checks.
+
 The integration serves the self-hosted library; proxying the official Kobo store is
 disabled. Existing store purchases and device-side behavior should be checked on
 the actual Kobo before relying on it as a replacement for the store's sync endpoint.
