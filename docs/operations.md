@@ -5,10 +5,14 @@ existing worker; Guaranine's control plane remains dedicated to platform work.
 Both applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
-The qBittorrent VPN proxy has a 512 MiB memory limit. Its earlier 128 MiB limit
-caused repeated OOM kills during peer transfers; each restart disconnected peers
-and interrupted downloads. Check the `vpn` init container's restart count and
-last termination reason when investigating sudden download-speed drops.
+The qBittorrent VPN proxy has a 1 GiB memory limit and `GOMEMLIMIT=768MiB`.
+The [Go runtime memory target](https://go.dev/doc/gc-guide#Memory_limit) encourages
+garbage collection below the container limit, leaving headroom for other process
+and kernel allocations. It is a soft target, not a hard bound. Earlier 128 MiB
+and 512 MiB container limits caused OOM kills during peer transfers; each restart
+disconnected peers and interrupted downloads. Check the `vpn` init container's
+restart count and last termination reason when investigating sudden download-speed
+drops.
 
 ## Private access
 
