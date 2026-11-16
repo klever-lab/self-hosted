@@ -23,7 +23,7 @@ jobs:
       - name: Install test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes bubblewrap shellcheck
+          sudo apt-get install --yes bubblewrap shellcheck gawk
           python -m pip install -r requirements.txt
       - name: Check Kobo shell scripts
         run: shellcheck integrations/kobo/bootstrap.sh integrations/kobo/status.sh

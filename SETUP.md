@@ -106,7 +106,7 @@ updating the fork, validate it and update the pinned commit here together.
 
 ## Tests
 
-On Linux, install `bubblewrap` and `shellcheck`, then run:
+On Linux, install `bubblewrap`, `shellcheck` and an `awk` implementation, then run:
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with-requirements requirements.txt python -m unittest discover -s tests -v

@@ -38,8 +38,9 @@ class MenuContractTests(unittest.TestCase):
 class KoboCommandTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if not shutil.which('bwrap'):
-            raise RuntimeError('Kobo command tests require bubblewrap; install it before running the suite')
+        for command in ('bwrap', 'awk'):
+            if not shutil.which(command):
+                raise RuntimeError('Kobo command tests require bubblewrap and awk; install them before running the suite')
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='kobo-commands-')
@@ -49,8 +50,11 @@ class KoboCommandTests(unittest.TestCase):
         self.setup = self.onboard / '.adds/self-hosted-kobo'
         self.local = self.root / 'local'
         self.wifi = self.root / 'sys/class/net/wlan0'
-        for path in (self.setup, self.local / 'tailscale/bin', self.wifi):
+        self.tools = self.root / 'tools'
+        for path in (self.setup, self.local / 'tailscale/bin', self.wifi, self.tools):
             path.mkdir(parents=True)
+        # Debian's awk link uses /etc/alternatives, outside the isolated filesystem.
+        (self.tools / 'awk').symlink_to(Path(shutil.which('awk')).resolve())
         shutil.copyfile(ROOT / 'integrations/kobo/status.sh', self.setup / 'status.sh')
         (self.setup / 'books-host').write_text('100.64.0.1\nbooks.fixture.ts.net\n')
         (self.setup / 'status.txt').write_text('Previous setup completed.\n')
@@ -88,12 +92,13 @@ printf 'books 13394984 978000 12417024 8%% /mnt/onboard\\n'
         timeout, _, command = argument.partition(':')
         args = [
             'bwrap', '--unshare-all', '--die-with-parent', '--uid', '0', '--gid', '0',
-            '--clearenv', '--setenv', 'PATH', '/usr/bin:/bin',
+            '--clearenv', '--setenv', 'PATH', '/test-tools:/usr/bin:/bin',
             '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin',
             '--symlink', 'usr/sbin', '/sbin', '--symlink', 'usr/lib', '/lib',
             '--symlink', 'usr/lib64', '/lib64', '--proc', '/proc', '--dev', '/dev',
             '--tmpfs', '/tmp', '--tmpfs', '/usr/local',
             '--ro-bind', str(self.local), '/usr/local',
+            '--ro-bind', str(self.tools), '/test-tools',
             '--ro-bind', str(self.root / 'sys'), '/sys',
             '--ro-bind', str(self.root / 'wget'), '/usr/bin/wget',
             '--ro-bind', str(self.root / 'df'), '/usr/bin/df',
