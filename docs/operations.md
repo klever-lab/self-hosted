@@ -14,6 +14,42 @@ disconnected peers and interrupted downloads. Check the `vpn` init container's
 restart count and last termination reason when investigating sudden download-speed
 drops.
 
+## Seeding and incoming peers
+
+To remove the active-seed limit in VueTorrent, open **Settings → BitTorrent →
+Torrent Queueing**, keep queueing enabled, and save these values:
+
+| Setting | Value |
+| --- | --- |
+| Maximum active downloads | `3` |
+| Maximum active uploads | `-1` (unlimited) |
+| Maximum active torrents | `-1` (unlimited) |
+
+Keep **Do not count slow torrents in these limits** unchecked to retain the
+three-download limit even when downloads stall. Both unlimited values are needed
+so the combined torrent limit does not constrain seeds. The configuration volume
+retains these settings, and the deployment initializer leaves them unchanged.
+After saving, check that completed, started torrents leave the queued state;
+`stalledUP` means they are available to seed but are not currently uploading.
+These are recommended settings to apply through the UI, not a record of a
+completed live change.
+
+The plan agreed on 2026-11-16 is to trial Windscribe's
+[ephemeral port forwarding](https://windscribe.com/knowledge-base/articles/what-is-ephemeral-port-forwarding-and-how-to-use-it)
+first. Pro accounts include one temporary forward, which expires after seven
+days; record its port and expiry in protected operator storage. The current
+SOCKS5 peer-proxy path does not accept incoming TCP connections, so the trial
+also requires a VPN routing change that delivers incoming peer traffic to
+qBittorrent. Preserve VPN-only torrent traffic and private WebUI access.
+
+Verify the forwarded peer port from outside the VPN and compare uploaded bytes
+over comparable periods with the same torrents and queue settings. If incoming
+connectivity works and seeding improves enough to justify the cost, **purchase a
+P2P-capable Windscribe static IP and switch to a permanent port forward**. Confirm
+the selected location and connection method support both P2P and permanent
+forwarding before buying. The ephemeral forward is a trial, not the intended
+long-term arrangement; no static IP has been purchased as part of this change.
+
 ## Private access
 
 Both HTTPS gateways disable Tailscale Funnel and accept connections only through
