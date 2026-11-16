@@ -67,8 +67,8 @@ write onboard storage remotely while it is exported over USB.
 library access remains available. Access settings persist across daemon restarts.
 Running **Set up Tailscale** restores the installer's default blocked settings,
 so enable laptop access again afterward if needed. Tailscale's SSH server handles
-only tailnet traffic and opens no public or Wi-Fi LAN SSH listener. Its native
-operation on this reader still requires a physical connection check after staging.
+only tailnet traffic and opens no public or Wi-Fi LAN SSH listener. Native SSH,
+SFTP and private library access passed the [physical reader checks](verification.md#clara-bw-installation-and-pairing).
 
 ## Library synchronization
 

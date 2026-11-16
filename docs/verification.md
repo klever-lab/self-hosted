@@ -110,8 +110,8 @@ Both updated reader files matched the repository after copying. The installation
 result remains available separately under **Setup result**.
 
 The live status display, on-demand download setting and opening a book still need
-verification on the physical screen. Recovery after sleep and Wi-Fi changes has
-not been exercised.
+verification on the physical screen. Repeated sleep cycles and Wi-Fi changes
+have not been exercised.
 
 The first live status check exposed an invalid 10,000 ms NickelMenu timeout;
 version 0.6.0 accepts values strictly below 10,000 ms. An unreadable setup result also
@@ -134,5 +134,17 @@ reader addresses, and another enrolled operator device is explicitly denied.
 Books-only reader egress and Jellyfin's separate Funnel permission were preserved.
 USB readback verified all three staged files; the reader configuration, database
 and Books hostname file retained their original hashes. The reader was safely
-ejected. Native SSH commands, SFTP and the new menu controls remain pending until
-Wi-Fi is reconnected and laptop access is enabled on the physical reader.
+ejected.
+
+The operator then enabled laptop access on the reader and completed Tailscale's
+browser authentication check. Native SSH returned UID 0, ARMv7 and the pinned
+Tailscale version. The reader retained its enrolled address; SSH was enabled with
+DNS and subnet-route acceptance still disabled. Its installation, state and socket
+directories remained mode 0700. The kernel TCP tables contained no port 22
+listener, confirming that the added SSH service uses Tailscale's internal stack.
+Remote SHA-256 checks matched all three staged files. An SFTP check uploaded and
+downloaded 65,536 bytes with strict host-key verification; the returned bytes
+matched exactly and the temporary reader file was removed. The live status helper
+reported Wi-Fi connected and private Books HTTPS reachable. The reader briefly
+went offline during authentication; after the operator woke it, the original SSH
+session completed and subsequent commands and SFTP succeeded.
