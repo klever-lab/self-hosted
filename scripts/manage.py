@@ -294,7 +294,7 @@ def main():
     init = commands.add_parser('init')
     init.add_argument('--node', required=True)
     init.add_argument('--wireguard-profile', required=True)
-    init.add_argument('--username', default='admin')
+    init.add_argument('--username', default='klever')
     for name in ('deploy', 'render', 'status'):
         command = commands.add_parser(name)
         command.add_argument('app', nargs='?', choices=APPS)

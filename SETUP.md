@@ -14,8 +14,9 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
    ./self-hosted init --node YOUR_WORKER --wireguard-profile /private/path/qbittorrent.conf
    ```
 
-   Initialization generates separate random application passwords. Protected
-   settings live in `~/.local/state/self-hosted` by default; select another location
+   Initialization uses `klever` for both administrator usernames and generates
+   separate random application passwords. Override the name with `--username`.
+   Protected settings live in `~/.local/state/self-hosted` by default; select another location
    with `SELF_HOSTED_OPERATOR_DIR`. Use `GUARANINE_OPERATOR_DIR` for a nondefault
    Guaranine operator directory.
 3. Inspect and deploy:
@@ -49,10 +50,14 @@ To deploy an application independently:
 Deploying both applications also installs the book-import integration. The shared
 `components/edge` directory contains the userspace Tailscale gateway resources.
 
-The original generated admin username/password are retained in protected
+The administrator username/password are retained in protected
 `access.json`. If you change qBittorrent's password through its UI, update that file
 and deploy again so the importer can authenticate. Redeployment preserves user
 accounts, session data, books, and enrolled gateway identities.
+
+To rename an existing administrator, use the application's user/account settings,
+then update the matching username in `access.json` and deploy again. Renaming the
+Calibre-Web account preserves its user ID, library access, and Kobo token.
 
 See [Kobo setup](docs/kobo.md) to pair a reader, and [operations](docs/operations.md)
 to back up state before substantial changes.
