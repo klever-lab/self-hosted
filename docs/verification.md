@@ -204,9 +204,54 @@ library or reader backup at the operator's request:
   and the reader reconnected to private Books HTTPS.
 - Direct authenticated downloads of *The Trial* succeeded from both the laptop
   and reader; the laptop received HTTP 200 and a 265,621-byte EPUB ZIP archive.
-  The initial screen check reported **Pending** before the remote restart.
-  Native cover display, opening the selected book and avoiding automatic
-  downloads still require confirmation in the reading interface.
+  The reading interface still reported **Pending** after restarting. Removing
+  the entry queued an archive action that reached Calibre-Web on the next sync.
+  Restored it through the device account, requested the built-in **Force Full
+  Kobo Sync**, and let the reader perform its normal Sync. The operator then
+  found, downloaded and opened the book, confirmed readable pages and confirmed
+  that no other books downloaded automatically. The native downloaded archive
+  passed complete ZIP CRC checks. Cover display was not explicitly confirmed.
 
 The repository checks passed all 26 tests, ShellCheck and whitespace validation.
 Private audit reports and downloaded cover assets remain outside Git.
+
+## Removing recoverable reader downloads
+
+At the operator's request, compared the reader's downloaded files with the
+existing Calibre-Web library before removing recoverable copies:
+
+- Matched 47 ordinary EPUB files byte-for-byte with retained library files.
+  Three contain HTML entities that fail strict XML parsing; their converted
+  KEPUB copies have valid chapter XML and passed ZIP integrity checks.
+- Matched four native KEPUB files by library UUID and by hashes of every spine
+  document, with valid XML, complete ZIP CRC checks and no rights file.
+- Transferred 23 local books' read/finished status and percentages to the
+  dedicated Calibre-Web device account through its normal reading-state API.
+  Exact page bookmarks were not converted between the original USB editions
+  and the synced editions.
+- Rechecked all file hashes before removing the 51 matched files. Freed
+  315,486,738 bytes. All 28 unmatched or protected native files retained their
+  original hashes; regulatory manuals, configuration and Tailscale were retained.
+- The native refresh and sync removed three more files, including *Crystal
+  Society*, whose hash exactly matched its retained library copy. The remaining
+  native files still matched their original hashes. A live read-only query found
+  no downloaded USB books, and the retained downloaded entries' reading state
+  matched the pre-cleanup query.
+- Further comparison identified *All Systems Red* as another exact file match.
+  The *Treasure Island* preview matched its author and story passages in the
+  complete readable library edition; its preview percentage was not transferred
+  to that full edition. Removing these two files freed another 2,464,749 bytes,
+  bringing explicitly removed recoverable files to 53 and 317,951,487 bytes.
+
+After the operator ran the native local import and library sync, all 53 removed
+files remained absent and their stale downloaded labels were cleared. *The Trial*
+was restored to the synced catalog without downloading it again. The library
+retained all 259 records and 510 formats; all 23 transferred reading states were
+verified after sync. Store titles restored during the session were excluded from
+the cleanup. Subsequent native sync changed which store files were downloaded;
+retained files still matched their original hashes.
+
+Live catalog inspection used a temporary utility with SQLite URI `mode=ro` and
+`query_only`, tested against an existing read-only snapshot without changing its
+hash. The reader database was not copied or edited directly. Temporary inspection
+utilities were removed from the reader after verification.

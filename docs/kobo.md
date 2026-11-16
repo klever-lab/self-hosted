@@ -29,7 +29,8 @@ The Clara BW currently uses `MaxDownload=0` under `[FeatureSettings]` to request
 downloads only when selected. Changes require a reader restart. Kobo normally pre-downloads
 its [five most recent books](https://help.kobo.com/hc/en-us/articles/360017605034-Download-all-your-books-onto-your-Kobo-eReader).
 The override is [reported by a Clara BW owner](https://www.mobileread.com/forums/showthread.php?t=370147&page=2)
-and still needs a manual download check on this firmware. It does not remove
+and was checked on firmware 4.46.23852: the operator downloaded and opened a
+selected book without other books downloading automatically. It does not remove
 existing downloaded books.
 
 Treat the generated endpoint as a password. Each account has its own token, which
@@ -98,6 +99,10 @@ The integration serves the self-hosted library and enables Calibre-Web's upstrea
 Kobo-store compatibility option. Books and covers in Calibre-Web are served
 locally; requests for existing Kobo purchases can use the official store. This
 preserves access to purchases that have not been imported as usable local files.
+Restore an archived Kobo purchase with **Kobo.com → My Books → Archive → Restore
+to Library**, then run the reader's normal **Sync**. Kobo documents this
+[restore workflow](https://help.kobo.com/hc/en-us/articles/360017765873-Move-items-out-of-your-account-archive).
+The restored purchase remains separate from any imported Calibre-Web copy.
 Book deletion and read-state behavior follow the upstream implementation.
 
 After pairing, safely eject the reader, unplug USB, enable Wi-Fi and use the normal
@@ -118,6 +123,24 @@ purchased copy through Kobo. Keep an unusable imported duplicate out of the
 device's catalog by archiving it while signed in as the device account. This
 retains the library record and file. PDF and other unsupported sync formats need
 a separate transfer workflow; see the upstream guide below.
+
+To free reader storage while retaining a synced book in its catalog, use
+**Remove → Remove download**. For several books, use **My Books → ⋯ → Manage
+books**, select them, and choose **Remove download** in the removal dialog.
+Kobo documents the distinction from [Remove from My Books](https://help.kobo.com/hc/en-us/articles/360017481294-Delete-multiple-books-from-your-eReader),
+which removes the catalog entry and requires restoring it from the source's
+archive. Original USB-loaded files may offer only removal of the entire entry;
+their reading state is separate from a Calibre-Web copy with a different UUID.
+Do not treat an uploaded copy as a migration of the original entry's progress.
+
+If a selected download remains **Pending** despite working private HTTPS and a
+valid download URL, use Calibre-Web's **Force Full Kobo Sync** action for the
+dedicated device account, then run the reader's normal **Sync**. This resends the
+catalog without replacing the library or clearing reading-state records. If a
+book was removed from My Books, let the reader sync that removal first, then
+restore the book from the device account's archive before requesting the full
+refresh. This sequence restored *The Trial* with its existing library UUID and
+resolved the observed stuck download on the Clara BW.
 
 **NickelMenu → Tailscale status** checks the current Wi-Fi link, daemon and private
 library HTTPS connection. Wait for the library-reachable result before syncing.
