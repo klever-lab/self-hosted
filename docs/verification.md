@@ -27,9 +27,9 @@ Verified against the live Guaranine deployment on 2026-11-16 UTC:
 - Python compilation, shell syntax, Kustomize rendering, server-side admission,
   whitespace checks, and a scan for the actual deployment secrets passed.
 
-These checks cover the server-side Kobo protocol. The physical reader was not
-connected and still needs its one-time endpoint configuration. A complete restore
-onto a replacement worker has not been exercised. Download payloads are excluded
+These initial checks cover the server-side Kobo protocol. Physical reader checks
+are recorded below. A complete restore onto a replacement worker has not been
+exercised. Download payloads are excluded
 from the application-state backup, as described in [operations](operations.md).
 
 ## Private access verification
@@ -51,3 +51,46 @@ Verified on 2026-11-16 UTC after disabling public access:
   gateway identities were preserved.
 - Jellyfin's live verification passed its private HTTPS, source-address,
   restricted RBAC and egress-isolation checks.
+
+## Clara BW installation and pairing
+
+Verified on the physical reader on 2026-11-16 UTC:
+
+- The Clara BW runs firmware 4.46.23852 and Linux 4.9.77. The pinned official
+  Tailscale 1.104.7 ARM daemon enrolled with the restricted Kobo tag. Its temporary
+  USB enrollment key was consumed and removed.
+- Native daemon logs show TUN engine creation, iptables and ip6tables absent, and
+  successful selection of nftables. The reader reached the private Books HTTPS
+  login endpoint without disabling certificate validation. This verifies the
+  backend and authenticated tailnet routing without the inherited firewall bundle.
+- A separate Calibre-Web device account has only download and viewer permissions.
+  Its token authenticated Kobo initialization over HTTPS, generated private HTTPS
+  cover URLs, and received HTTP 403 from both administrator pages checked.
+- All 200 library books have EPUB and KEPUB copies on the server. The physical
+  reader contains catalog entries for all 200, and four downloaded KEPUB archives
+  passed complete ZIP integrity checks. No synthetic sync consumed the device's
+  first library response.
+- The reader configuration was backed up, and the application-account database
+  backup passed SQLite integrity checks. Pairing changed only `api_endpoint` and
+  `image_host`; a later `MaxDownload=0` setting requests downloads only when
+  selected. Credentials, backups and device logs remain in protected operator
+  storage outside Git. The reader was safely ejected.
+
+The first physical sync attempt reported that the reader was full. USB inspection
+then found 12.7 GB free, a healthy reader database, the sync endpoint reverted to
+Kobo's store, and no Calibre-Web sync history for the device account. Reapplying
+the endpoint in place and restarting the reader led to successful catalog sync
+and downloads. USB readback confirmed that the endpoint persisted. The reader
+reported 649 MiB free on the system partition and 12,126 MiB on the book partition.
+
+The original **Tailscale status** menu displayed a saved installation result and
+could misleadingly show a successful connection with Wi-Fi off. Its replacement
+checks the current Wi-Fi link, the daemon and private Books HTTPS. Four isolated
+checks covered Wi-Fi off, daemon unavailable, library unreachable and successful
+connectivity. Shell syntax and ShellCheck passed for the scripts and menu commands.
+Both updated reader files matched the repository after copying. The installation
+result remains available separately under **Setup result**.
+
+The live status display, on-demand download setting and opening a book still need
+verification on the physical screen. Recovery after sleep and Wi-Fi changes has
+not been exercised.

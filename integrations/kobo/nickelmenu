@@ -1,0 +1,4 @@
+menu_item :main :Set up Tailscale :cmd_spawn :quiet:/bin/sh /mnt/onboard/.adds/self-hosted-kobo/bootstrap.sh
+menu_item :main :Tailscale status :cmd_output :10000:/bin/sh /mnt/onboard/.adds/self-hosted-kobo/status.sh
+menu_item :main :Setup result :cmd_output :1500:cat /mnt/onboard/.adds/self-hosted-kobo/status.txt
+menu_item :main :Storage status :cmd_output :2000:df -Pk / /mnt/onboard | awk 'NR > 1 {printf "%s free: %.1f MiB\n", ($6 == "/" ? "System" : "Books"), $4 / 1024}' | tee /mnt/onboard/.adds/self-hosted-kobo/storage-check.txt
