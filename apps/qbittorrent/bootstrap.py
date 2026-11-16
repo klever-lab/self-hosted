@@ -25,6 +25,7 @@ for key in list(network):
 network.update({'Proxy\\Type': 'None', 'PortForwardingEnabled': 'false'})
 config['BitTorrent'].update({
     'Session\\DefaultSavePath': '/downloads/complete',
+    'Session\\DiskCacheSize': '2048',
     'Session\\TempPath': '/downloads/incomplete',
     'Session\\TempPathEnabled': 'true',
     'Session\\DHTEnabled': 'true',

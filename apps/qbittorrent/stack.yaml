@@ -161,8 +161,8 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
           resources:
-            requests: {cpu: 100m, memory: 128Mi}
-            limits: {cpu: "2", memory: 1Gi}
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {cpu: "2", memory: 4Gi}
           startupProbe: {httpGet: {path: /, port: 8080}, periodSeconds: 5, failureThreshold: 36}
           readinessProbe: {httpGet: {path: /, port: 8080}}
           volumeMounts:

@@ -12,6 +12,14 @@ non-root (`UID 1000`) with read-only root filesystems and all capabilities dropp
 Check the `vpn` init container's restart count and health status when investigating
 connectivity drops.
 
+qBittorrent has a 4 GiB memory limit and a 512 MiB request. Its pinned
+libtorrent 1.2 build uses an explicit 2048 MiB disk cache, set by the deployment
+initializer. Keep the cache and container memory budget aligned: the remaining
+allowance accommodates process data, peer buffers and filesystem cache. The
+worker's spinning disk is shared with Jellyfin; increasing concurrent uploads can
+increase random reads and delay other applications. Reassess caching when moving
+to a libtorrent 2 build, which manages disk reads differently.
+
 ## Seeding and incoming peers
 
 To remove the active-seed limit in VueTorrent, open **Settings → BitTorrent →

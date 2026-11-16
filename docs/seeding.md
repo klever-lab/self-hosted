@@ -94,6 +94,27 @@ If the trial is effective, the agreed next step is to buy a P2P-capable Windscri
 static IP and use a permanent port forward. Verify both P2P and forwarding support
 for the chosen location and connection method before purchasing.
 
+## Measure upload constraints
+
+Compare torrent payload counters over elapsed time with the worker's physical
+interface transmit counters. VPN framing, management traffic and Jellyfin share
+that interface, so its total is not the same as qBittorrent's payload rate.
+Keep short network tests bounded and send generated data, not application files.
+To measure spare uplink capacity, record the current global upload limit,
+temporarily lower it through the transfer API, and restore the exact prior limit
+in cleanup, including interruption handling. Keep the VPN and its firewall active.
+An upload test from the worker measures its Wi-Fi/ISP path; repeat from inside the
+qBittorrent pod to measure the additional VPN path. A short test establishes an
+observation, not the internet plan's advertised or guaranteed capacity.
+
+On the existing spinning-disk worker, also inspect disk I/O pressure and the
+qBittorrent cgroup's memory/cache counters. The deployment provides a 4 GiB
+container budget and an explicit 2048 MiB cache for the pinned libtorrent 1.2
+build. Let the cache warm before comparing sustained throughput. Adding peers
+can increase random disk reads and interfere with Jellyfin before network
+capacity is exhausted. Jellyfin's public Funnel path has separate provider
+bandwidth limits; its server bitrate limit is a different setting.
+
 ## Live trial verification (2026-11-16 UTC)
 
 Verified on the live `qbittorrent` deployment with ephemeral Matching Port `10837`
@@ -150,3 +171,31 @@ Verified on the live `qbittorrent` deployment with ephemeral Matching Port `1083
 Private baselines and results are retained under the operator directory's
 `security/` directory. The ephemeral reservation still expires approximately
 `2026-11-23T13:48:00Z`; admission hardening does not renew it.
+
+## Cache tuning verification (2026-11-16 UTC)
+
+- The operator raised upload slots from 20 globally / 4 per torrent to 250 / 50.
+  A short before/after observation rose from 6.15 Mbps over 61 seconds to
+  34.2 Mbps over 54 seconds. This was not a controlled benchmark.
+- The worker uses a rotational disk. qBittorrent reached its former 1 GiB
+  cgroup limit, repeatedly reclaimed file cache, and showed substantial disk
+  stalls while the worker still had about 12 GiB available. Deployed the 4 GiB
+  allowance and explicit 2048 MiB libtorrent cache; the cache filled and no
+  out-of-memory event occurred. Disk pressure varied and decreased in later
+  samples, but a separate upload-speed gain from this change was not established.
+- After the restart, torrent payload averaged about 31.5 Mbps over 8.5 minutes,
+  including brief network tests. A subsequent operator-started download changed
+  the workload and reduced observed upload speed. Downloads and seeds share the
+  disk, cache and Wi-Fi airtime; compare equivalent workloads before attributing
+  changes to a setting.
+- Short Cloudflare upload probes were inconsistent, including timeouts and a
+  broken pipe. About 40 Mbps of total physical transmit traffic was observed;
+  these probes did not establish the Wi-Fi/ISP or VPN throughput ceiling. The
+  temporary upload limit was restored to unlimited, with slots left at 250 / 50.
+- Verified an external full BitTorrent TCP handshake and observed 90 incoming
+  uTP peers, including active UDP uploads. Fresh DHT ping probes from the operator
+  did not receive replies; that probe did not establish a UDP forwarding failure.
+- All 40 local tests and 51 admission dry runs passed. The existing torrent
+  hashes, PVC bindings and Tailscale identities were preserved; the operator's
+  new download was retained. Protected results live under `seeding/`, referenced
+  by `seeding/current-performance-audit` in the operator directory.
