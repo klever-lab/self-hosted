@@ -167,4 +167,11 @@ A stable copy of the live reader database passed SQLite integrity checks and
 identified three setup TXT documents in the catalog: `backend-check`, `status`
 and `storage-check`, all under `.adds/self-hosted-kobo`. Diagnostic outputs now
 use `.log`, and the saved-result and storage-command tests exercise those paths.
-Removing the old TXT filenames and refreshing the native catalog remain pending.
+The TXT files and prior scripts were backed up privately, the diagnostics were
+renamed to `.log`, and updated scripts and menu were installed over Tailscale
+with remote SHA-256 checks. The operator ran **Refresh local books**. A stable
+post-refresh database snapshot passed SQLite integrity checks and contained no
+setup-document entries. All 3,264 pre-existing real book records retained the
+same IDs, titles, read status and reading percentage. Another 51 UUID catalog
+records were present, all marked not downloaded. The cleanup used the native
+import workflow and did not write the reader database directly.
