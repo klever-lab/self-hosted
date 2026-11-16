@@ -13,6 +13,7 @@ import secrets
 import socket
 import subprocess
 import tarfile
+import time
 import urllib.parse
 import urllib.request
 
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STATE = Path(os.environ.get('SELF_HOSTED_OPERATOR_DIR', Path.home() / '.local/state/self-hosted')).expanduser().resolve()
 GUARANINE = Path(os.environ.get('GUARANINE_OPERATOR_DIR', Path.home() / '.local/state/guaranine-kairos')).expanduser()
 APPS = ('qbittorrent', 'calibre-web')
+ADMISSION_KINDS = ('ValidatingAdmissionPolicy', 'ValidatingAdmissionPolicyBinding')
 os.environ.setdefault('KUBECTL_REMOTE_COMMAND_WEBSOCKETS', 'false')
 
 
@@ -70,6 +72,9 @@ def objects(cfg, selected):
         for obj in documents:
             if obj is None:
                 continue
+            # Kustomize's scope table does not yet recognize these cluster resources.
+            if obj['kind'] in ADMISSION_KINDS:
+                obj['metadata'].pop('namespace', None)
             if obj['kind'] == 'Deployment':
                 spec = obj['spec']['template']['spec']
             elif obj['kind'] == 'CronJob':
@@ -178,12 +183,109 @@ def gateway(cfg, app):
             'data': {'hostname': cfg['hostnames'][app], 'serve.json': json.dumps(serve)}}
 
 
+def install_admission(items):
+    """Install and type-check guards before relaxing built-in namespace admission."""
+    policies = [obj for obj in items if obj['kind'] == 'ValidatingAdmissionPolicy']
+    if any(obj['kind'] == 'Namespace' and obj['metadata']['name'] == 'qbittorrent' for obj in items):
+        if (not any(p['metadata']['name'] == 'self-hosted-qbittorrent-security' for p in policies) or
+                not any(obj['kind'] == 'ValidatingAdmissionPolicyBinding' and
+                        obj['spec']['policyName'] == 'self-hosted-qbittorrent-security' and
+                        'Deny' in obj['spec']['validationActions'] for obj in items)):
+            raise ValueError('qBittorrent requires its enforcing admission policy and binding')
+    if not policies:
+        return
+    apply(policies)
+    for policy in policies:
+        name = policy['metadata']['name']
+        deadline = time.monotonic() + 30
+        while True:
+            current = json.loads(kube('--request-timeout=15s', 'get', 'validatingadmissionpolicy', name, '-o', 'json').stdout)
+            status = current.get('status', {})
+            if status.get('observedGeneration') == current['metadata']['generation'] and 'typeChecking' in status:
+                warnings = status['typeChecking'].get('expressionWarnings', [])
+                if warnings:
+                    raise ValueError(f'Admission policy {name} has type errors: {warnings}')
+                break
+            if time.monotonic() >= deadline:
+                raise RuntimeError(f'Admission policy {name} did not finish type checking')
+            time.sleep(0.5)
+    apply([obj for obj in items if obj['kind'] == 'ValidatingAdmissionPolicyBinding'])
+
+
+def pod_templates(items):
+    """Exercise Pod admission as well as controller admission during deployment."""
+    for obj in items:
+        if obj['kind'] == 'Deployment':
+            template = obj['spec']['template']
+        elif obj['kind'] == 'CronJob':
+            template = obj['spec']['jobTemplate']['spec']['template']
+        else:
+            continue
+        yield {'apiVersion': 'v1', 'kind': 'Pod',
+               'metadata': {'generateName': 'self-hosted-admission-',
+                            'namespace': obj['metadata']['namespace'],
+                            'labels': template.get('metadata', {}).get('labels', {}),
+                            'annotations': template.get('metadata', {}).get('annotations', {})},
+               'spec': template['spec']}
+
+
+def dry_run_pod(pod, *, check=True):
+    # Submit directly to avoid kubectl downloading the full OpenAPI schema over
+    # the tailnet. The API server still performs strict validation and admission.
+    namespace = urllib.parse.quote(pod['metadata']['namespace'], safe='')
+    path = f'/api/v1/namespaces/{namespace}/pods?dryRun=All&fieldValidation=Strict'
+    return kube('--request-timeout=15s', 'create', '--raw', path, '-f', '-',
+                data=json.dumps(pod).encode(), check=check)
+
+
+def check_admission_guard(items):
+    if any(obj['kind'] == 'ValidatingAdmissionPolicy' for obj in items):
+        # A successful positive dry run alone cannot prove the binding is active.
+        template = next(p for p in pod_templates(items) if p['metadata']['namespace'] == 'qbittorrent')
+        probe = {'apiVersion': 'v1', 'kind': 'Pod',
+                 'metadata': {'generateName': 'self-hosted-admission-', 'namespace': 'qbittorrent'},
+                 'spec': {'automountServiceAccountToken': False,
+                          'securityContext': {'runAsNonRoot': True, 'runAsUser': 1000, 'runAsGroup': 1000,
+                                              'seccompProfile': {'type': 'RuntimeDefault'}},
+                          'containers': [{'name': 'probe', 'image': template['spec']['containers'][0]['image'],
+                                          'securityContext': {'allowPrivilegeEscalation': False,
+                                                              'readOnlyRootFilesystem': False,
+                                                              'capabilities': {'drop': ['ALL']}}}]}}
+        # A new namespace starts restricted. The writable-root probe passes that
+        # built-in profile but must fail our policy before its VPN exception opens.
+        current = kube('--request-timeout=15s', 'get', 'namespace', 'qbittorrent', '--ignore-not-found', '-o', 'json').stdout
+        if not current:
+            namespace = json.loads(json.dumps(next(obj for obj in items
+                if obj['kind'] == 'Namespace' and obj['metadata']['name'] == 'qbittorrent')))
+            namespace['metadata'].setdefault('labels', {})['pod-security.kubernetes.io/enforce'] = 'restricted'
+            apply([namespace])
+            kube('-n', 'qbittorrent', 'wait', '--for=create', 'serviceaccount/default', '--timeout=30s')
+        deadline = time.monotonic() + 30
+        while True:
+            result = dry_run_pod(probe, check=False)
+            error = result.stderr.decode()
+            if result.returncode and "self-hosted-qbittorrent-security" in error and 'denied request' in error:
+                break
+            if result.returncode:
+                raise RuntimeError(f'Admission probe failed unexpectedly: {error.strip()}')
+            if time.monotonic() >= deadline:
+                raise RuntimeError('qBittorrent admission binding did not reject the unsafe probe')
+            time.sleep(0.5)
+
+
+def check_admission(items):
+    for pod in pod_templates(items):
+        dry_run_pod(pod)
+
+
 def deploy(cfg, selected):
     access = load('access.json')
     fingerprints = {}
     items = objects(cfg, selected)
+    install_admission(items)
+    check_admission_guard(items)
     apply([obj for obj in items if obj['kind'] == 'Namespace'])
-    initial = [obj for obj in items if obj['kind'] not in ('Namespace', 'Deployment', 'CronJob')]
+    initial = [obj for obj in items if obj['kind'] not in ('Namespace', 'Deployment', 'CronJob', *ADMISSION_KINDS)]
     apply(initial)
     for app in selected:
         values = {'username': access[app]['username'], 'password': access[app]['password']}
@@ -203,6 +305,7 @@ def deploy(cfg, selected):
         apply([secret('qbittorrent', 'book-importer', {
             'qbt-username': access['qbittorrent']['username'], 'qbt-password': access['qbittorrent']['password'],
             'calibre-password': access['import-password']})])
+    check_admission(items)
     runtime = [obj for obj in items if obj['kind'] in ('Deployment', 'CronJob')]
     for obj in runtime:
         if obj['kind'] == 'Deployment':

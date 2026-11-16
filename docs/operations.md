@@ -29,8 +29,9 @@ so the combined torrent limit does not constrain seeds. The configuration volume
 retains these settings, and the deployment initializer leaves them unchanged.
 After saving, check that completed, started torrents leave the queued state;
 `stalledUP` means they are available to seed but are not currently uploading.
-These are recommended settings to apply through the UI, not a record of a
-completed live change.
+Applied and verified on 2026-11-16 through qBittorrent's preferences API: active
+uploads and total active torrents are unlimited, while active downloads remain
+limited to three. The configuration volume preserves these values.
 
 The plan agreed on 2026-11-16 is to trial Windscribe's
 [ephemeral port forwarding](https://windscribe.com/knowledge-base/articles/what-is-ephemeral-port-forwarding-and-how-to-use-it)

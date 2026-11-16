@@ -1,0 +1,150 @@
+# Pod Security Admission has no per-container exceptions. Keep its audit/warnings
+# and enforce this stricter policy for every Pod, including ephemeral containers.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: self-hosted-qbittorrent-security
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: qbittorrent}
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods, pods/ephemeralcontainers]
+        scope: Namespaced
+  variables:
+    - name: containers
+      expression: >-
+        object.spec.containers +
+        (has(object.spec.initContainers) ? object.spec.initContainers : []) +
+        (has(object.spec.ephemeralContainers) ? object.spec.ephemeralContainers : [])
+    - name: vpnNames
+      expression: >-
+        has(object.metadata.labels) && 'app' in object.metadata.labels &&
+        object.metadata.labels['app'] == 'qbittorrent' && has(object.spec.initContainers) ?
+        object.spec.initContainers.filter(c,
+          c.name == 'vpn' &&
+          c.image == 'qmcgaw/gluetun:v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027' &&
+          has(c.restartPolicy) && c.restartPolicy == 'Always' &&
+          has(c.command) && c.command == ['/bin/sh', '-ec',
+            'ip rule del table 51820 2>/dev/null || true; ip -6 rule del table 51820 2>/dev/null || true; exec /gluetun-entrypoint'] &&
+          (!has(c.args) || size(c.args) == 0) && !has(c.envFrom) &&
+          !has(c.lifecycle) && !has(c.livenessProbe) && !has(c.volumeDevices) &&
+          has(c.startupProbe) && has(c.startupProbe.exec) &&
+          c.startupProbe.exec.command == ['/gluetun-entrypoint', 'healthcheck'] &&
+          has(c.readinessProbe) && has(c.readinessProbe.exec) &&
+          c.readinessProbe.exec.command == ['/gluetun-entrypoint', 'healthcheck'] &&
+          has(c.env) && c.env.all(e,
+            e.name in ['VPN_SERVICE_PROVIDER', 'VPN_TYPE', 'VPN_INTERFACE',
+              'WIREGUARD_IMPLEMENTATION', 'WIREGUARD_CONF_SECRETFILE', 'WIREGUARD_MTU',
+              'WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL', 'FIREWALL_INPUT_PORTS',
+              'FIREWALL_VPN_INPUT_PORTS', 'BLOCK_MALICIOUS', 'HEALTH_SMALL_CHECK_TYPE',
+              'HTTP_CONTROL_SERVER_ADDRESS', 'PUBLICIP_ENABLED', 'PUID', 'PGID', 'TZ'] &&
+            size(c.env.filter(other, other.name == e.name)) == 1) &&
+          c.env.exists(e, e.name == 'VPN_SERVICE_PROVIDER' && has(e.value) && e.value == 'custom') &&
+          c.env.exists(e, e.name == 'VPN_TYPE' && has(e.value) && e.value == 'wireguard') &&
+          c.env.exists(e, e.name == 'WIREGUARD_CONF_SECRETFILE' && has(e.value) && e.value == '/etc/vpn/wg0.conf') &&
+          c.env.exists(e, e.name == 'WIREGUARD_IMPLEMENTATION' && has(e.value) && e.value == 'kernelspace') &&
+          c.env.exists(e, e.name == 'VPN_INTERFACE' && has(e.value) && e.value == 'wg0') &&
+          c.env.exists(e, e.name == 'FIREWALL_INPUT_PORTS' && has(e.value) && e.value == '8080') &&
+          c.env.exists(e, e.name == 'HTTP_CONTROL_SERVER_ADDRESS' && has(e.value) && e.value == '127.0.0.1:8000') &&
+          c.env.exists(e, e.name == 'FIREWALL_VPN_INPUT_PORTS' && has(e.valueFrom) &&
+            has(e.valueFrom.secretKeyRef) && e.valueFrom.secretKeyRef.name == 'wireguard' &&
+            e.valueFrom.secretKeyRef.key == 'vpn-input-ports') &&
+          has(c.volumeMounts) && size(c.volumeMounts) == 1 &&
+          c.volumeMounts.all(m, m.name == 'wireguard' && m.mountPath == '/etc/vpn' &&
+            has(m.readOnly) && m.readOnly && !has(m.subPath) && !has(m.subPathExpr)) &&
+          has(object.spec.volumes) && object.spec.volumes.exists(v,
+            v.name == 'wireguard' && has(v.secret) && v.secret.secretName == 'wireguard')
+        ).map(c, c.name) : []
+    - name: ordinary
+      expression: variables.containers.filter(c, !(c.name in variables.vpnNames))
+    - name: contexts
+      expression: >-
+        [object.spec.securityContext] + variables.containers.map(c, c.securityContext)
+  validations:
+    - expression: >-
+        (!has(object.spec.hostNetwork) || !object.spec.hostNetwork) &&
+        (!has(object.spec.hostPID) || !object.spec.hostPID) &&
+        (!has(object.spec.hostIPC) || !object.spec.hostIPC) &&
+        (!has(object.spec.shareProcessNamespace) || !object.spec.shareProcessNamespace) &&
+        (!has(object.spec.os) || object.spec.os.name == 'linux') &&
+        (!has(object.spec.runtimeClassName))
+      message: Host namespaces, shared process namespaces, Windows Pods, and alternate runtimes are forbidden.
+    - expression: >-
+        has(object.spec.securityContext) &&
+        has(object.spec.securityContext.runAsNonRoot) && object.spec.securityContext.runAsNonRoot &&
+        has(object.spec.securityContext.runAsUser) && object.spec.securityContext.runAsUser > 0 &&
+        has(object.spec.securityContext.runAsGroup) && object.spec.securityContext.runAsGroup > 0 &&
+        has(object.spec.securityContext.seccompProfile) &&
+        object.spec.securityContext.seccompProfile.type == 'RuntimeDefault' &&
+        (!has(object.spec.securityContext.sysctls) || size(object.spec.securityContext.sysctls) == 0)
+      message: Pods require non-root user/group IDs, RuntimeDefault seccomp, and no custom sysctls.
+    - expression: >-
+        variables.containers.all(c,
+          has(c.securityContext) &&
+          (!has(c.securityContext.privileged) || !c.securityContext.privileged) &&
+          has(c.securityContext.allowPrivilegeEscalation) && !c.securityContext.allowPrivilegeEscalation &&
+          has(c.securityContext.capabilities) && has(c.securityContext.capabilities.drop) &&
+          'ALL' in c.securityContext.capabilities.drop &&
+          c.image.matches('^.+@sha256:[0-9a-f]{64}$') &&
+          (!has(c.securityContext.procMount) || c.securityContext.procMount == 'Default') &&
+          (!has(c.ports) || c.ports.all(p, !has(p.hostPort) || p.hostPort == 0)) &&
+          (!has(c.volumeMounts) || c.volumeMounts.all(m,
+            !has(m.mountPropagation) || m.mountPropagation == 'None')))
+      message: Every container must use a digest pin, drop ALL capabilities, forbid privilege escalation, and avoid privileged mode, host ports, unmasked proc, and mount propagation.
+    - expression: >-
+        variables.ordinary.all(c,
+          (!has(c.securityContext.runAsNonRoot) || c.securityContext.runAsNonRoot) &&
+          (!has(c.securityContext.runAsUser) || c.securityContext.runAsUser > 0) &&
+          (!has(c.securityContext.runAsGroup) || c.securityContext.runAsGroup > 0) &&
+          has(c.securityContext.readOnlyRootFilesystem) && c.securityContext.readOnlyRootFilesystem &&
+          (!has(c.securityContext.capabilities.add) || size(c.securityContext.capabilities.add) == 0)) &&
+        variables.containers.filter(c, c.name in variables.vpnNames).all(c,
+          has(c.securityContext.runAsUser) && c.securityContext.runAsUser == 0 &&
+          has(c.securityContext.runAsGroup) && c.securityContext.runAsGroup == 0 &&
+          has(c.securityContext.capabilities.add) &&
+          c.securityContext.capabilities.add.all(cap, cap in ['NET_ADMIN', 'NET_BIND_SERVICE']))
+      message: Only the pinned, configured Gluetun native sidecar may run as root or add NET_ADMIN/NET_BIND_SERVICE; other containers require read-only roots and no added capabilities.
+    - expression: >-
+        variables.contexts.all(s,
+          (!has(s.seccompProfile) || s.seccompProfile.type == 'RuntimeDefault') &&
+          (!has(s.appArmorProfile) || s.appArmorProfile.type == 'RuntimeDefault') &&
+          !has(s.seLinuxOptions) && !has(s.windowsOptions)) &&
+        (!has(object.metadata.annotations) || object.metadata.annotations.all(k,
+          !k.startsWith('container.apparmor.security.beta.kubernetes.io/') &&
+          !k.startsWith('container.seccomp.security.alpha.kubernetes.io/') &&
+          k != 'seccomp.security.alpha.kubernetes.io/pod'))
+      message: Security profile overrides and legacy seccomp/AppArmor annotations are forbidden.
+    - expression: >-
+        !has(object.spec.volumes) || object.spec.volumes.all(v,
+          has(v.configMap) || has(v.csi) || has(v.downwardAPI) || has(v.emptyDir) ||
+          has(v.ephemeral) || has(v.persistentVolumeClaim) || has(v.projected) || has(v.secret))
+      message: Only restricted volume types are allowed; hostPath and inline host storage are forbidden.
+    - expression: >-
+        variables.containers.all(c,
+          [has(c.livenessProbe) ? c.livenessProbe : null,
+           has(c.readinessProbe) ? c.readinessProbe : null,
+           has(c.startupProbe) ? c.startupProbe : null].all(p, p == null ||
+            ((!has(p.httpGet) || !has(p.httpGet.host) || p.httpGet.host == '') &&
+             (!has(p.tcpSocket) || !has(p.tcpSocket.host) || p.tcpSocket.host == ''))) &&
+          (!has(c.lifecycle) ||
+            [has(c.lifecycle.postStart) ? c.lifecycle.postStart : null,
+             has(c.lifecycle.preStop) ? c.lifecycle.preStop : null].all(h, h == null ||
+              ((!has(h.httpGet) || !has(h.httpGet.host) || h.httpGet.host == '') &&
+               (!has(h.tcpSocket) || !has(h.tcpSocket.host) || h.tcpSocket.host == '')))))
+      message: Probe and lifecycle network requests cannot target an explicit host.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: self-hosted-qbittorrent-security
+spec:
+  policyName: self-hosted-qbittorrent-security
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels: {kubernetes.io/metadata.name: qbittorrent}

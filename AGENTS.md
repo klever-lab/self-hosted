@@ -4,7 +4,9 @@ Read README.md and SETUP.md before changing deployments. Guaranine owns the
 Kubernetes platform; this repository owns application deployments and integrations.
 
 - Keep services independently deployable under apps/. Use upstream images pinned
-  by digest and the cluster's restricted Pod Security settings.
+  by digest and restricted Pod Security. qBittorrent's admission policy enforces
+  its namespace with one pinned Gluetun sidecar exception; keep that policy and
+  binding active and verify changes with scripts/check_admission.py.
 - Keep credentials, VPN profiles, state, and backups outside Git. The operator
   directory defaults to ~/.local/state/self-hosted with private permissions.
 - Preserve existing application data and enrolled Tailscale identities on deploy.

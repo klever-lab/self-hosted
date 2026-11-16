@@ -33,7 +33,11 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
    `render` contains application manifests and the empty library template, without
    credential values. Deployment creates credentials as Secrets, generates the VPN
    endpoint policy, enrolls isolated gateway identities, checks admission, and applies
-   the manifests. Images and new storage can take several minutes on first boot.
+   the manifests. qBittorrent first installs and type-checks its admission policy
+   and enforcing binding; this requires cluster-level admission administration.
+   Deployment verifies an unsafe Pod is rejected and each workload's actual Pod
+   template is accepted before applying controllers. Images and new storage can
+   take several minutes on first boot.
 
 The default hostnames are `qbittorrent` and `books` under your tailnet's `.ts.net`
 domain. Change them in the protected `config.json` **before initial enrollment**.
@@ -159,3 +163,13 @@ they do not use a reader, credentials or network access.
 The test workflow runs the full suite on pushes and pull requests using a standard
 GitHub-hosted runner. These tests do not replace physical checks of the Kobo UI,
 firmware behavior, reconnects or book downloads.
+
+After deploying qBittorrent, exercise the live admission policy with:
+
+```bash
+uv run --no-project --with-requirements requirements.txt python scripts/check_admission.py
+```
+
+This uses server dry runs against the existing cluster, including debug-container
+updates. It creates no workloads. See [seeding operations](docs/seeding.md#vpn-routing-and-pod-security)
+for the VPN exception and image-pin maintenance.

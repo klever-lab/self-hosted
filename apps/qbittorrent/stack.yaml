@@ -3,8 +3,8 @@ kind: Namespace
 metadata:
   name: qbittorrent
   labels:
-    # Gluetun needs CAP_NET_ADMIN in the pod network namespace for wg0 and its kill switch;
-    # qBittorrent and every other container remain non-root with all capabilities dropped.
+    # security.yaml enforces container restrictions with one pinned Gluetun exception.
+    # Built-in Pod Security Admission cannot express that per-container exception.
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/audit: restricted

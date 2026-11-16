@@ -11,10 +11,14 @@ renewal.
 
 Gluetun runs as a native sidecar (`vpn`) using kernel WireGuard (`wg0`, MTU `1120`
 for Flannel-over-Tailscale headroom) inside the qBittorrent pod's network
-namespace. Because Kubernetes PodSecurity Admission evaluates capability grants at
-the namespace level, the `qbittorrent` namespace sets
-`pod-security.kubernetes.io/enforce: privileged` (with `audit` and `warn` kept at
-`restricted`), matching Guaranine's scoped helper namespaces. Within the pod:
+namespace. Built-in Pod Security Admission cannot express a per-container
+exception, so the namespace retains `enforce: privileged` with restricted audit
+and warnings. The enforcing `self-hosted-qbittorrent-security`
+[admission policy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/)
+and binding close that namespace-wide gap for every Pod creation/update and
+debug-container update. Controller-created Pods receive the same checks.
+The binding denies violations and the policy fails closed on evaluation errors.
+Within the pod:
 
 - `vpn` (Gluetun) drops all capabilities except `NET_ADMIN` and
   `NET_BIND_SERVICE`, sets `allowPrivilegeEscalation: false`, and uses no
@@ -22,6 +26,27 @@ the namespace level, the `qbittorrent` namespace sets
 - `qbittorrent`, `configure`, and `webui` run as non-root `UID/GID 1000` with
   `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`,
   `seccompProfile: RuntimeDefault`, and `capabilities: {drop: [ALL]}`.
+
+The exception requires the native init sidecar named `vpn`, its exact Gluetun
+image digest, startup command and health probes, an allowlist of environment
+variables, kernelspace `wg0`, and its sole read-only VPN Secret mount, in a Pod
+labeled `app: qbittorrent`. Extra command hooks, imported/duplicate environment
+variables and a public control server are rejected. It permits root and only the
+two listed capabilities. Every container still forbids privileged mode and
+privilege escalation. Other containers require non-root user/group IDs,
+read-only root filesystems, and no added capabilities. The policy also blocks
+host namespaces, host ports/mounts, shared process namespaces, alternate runtimes,
+custom sysctls, unconfined profiles, and probe/lifecycle requests targeting hosts.
+All container images require digest pins.
+
+`apps/qbittorrent/security.yaml` and its binding must remain installed while the
+namespace's built-in enforcement is privileged. Deployment installs the policy
+before changing namespace labels, waits for successful type checking, verifies
+an actual denial, and dry-runs Pod templates before applying controllers. A new
+namespace starts restricted until that denial proves the custom guard is active.
+When updating Gluetun's digest, command, or mount, update its admission exception
+together and run `scripts/check_admission.py` as described in [setup](../SETUP.md#tests).
+Application service accounts have no permissions to modify these cluster policies.
 
 qBittorrent disables proxies (`Proxy\Type=None`, `Session\ProxyPeerConnections=false`)
 and binds BitTorrent directly to the tunnel interface (`Session\Interface=wg0`,
@@ -39,12 +64,12 @@ Two independent layers enforce fail-closed VPN egress and private WebUI access:
    `jellyfin-importer-api` restrict TCP `8080` ingress to `edge`, `book-importer`,
    and Jellyfin's `torrent-importer`.
 
-Windscribe binds ephemeral port forwards during a fresh WireGuard handshake; an
-endpoint node holding an existing pre-reservation peer session will ignore the new
-forward until that session expires. When `qbittorrent_forwarded_port` is added,
-changed, or removed, `./self-hosted deploy qbittorrent` refreshes the resolved
-endpoint IP and prefers a different node from the location's DNS pool so the new
-forward activates immediately.
+During the trial, the existing VPN endpoint did not apply the new reservation;
+switching to another resolved endpoint activated incoming connectivity. When
+`qbittorrent_forwarded_port` is added, changed, or removed, deployment refreshes
+DNS and prefers a different endpoint IP when the location has one. This is an
+observed recovery procedure, not a guarantee that each provider endpoint will
+refresh its forwarding state. Verify external TCP and UDP after every reservation.
 
 ## Verify a reservation
 
@@ -89,3 +114,39 @@ Verified on the live `qbittorrent` deployment with ephemeral Matching Port `1083
   and that stopping the VPN tunnel blocks HTTPS, raw TCP, and raw UDP egress while
   keeping local WebUI port `8080` responsive; restarting the tunnel automatically
   restored `wg0` and external TCP/UDP `10837` reachability.
+
+## Admission hardening verification (2026-11-16 UTC)
+
+- Installed the policy and Deny binding scoped to qBittorrent requests, with successful API
+  type checking. All 51 server dry runs passed: seven permitted requests
+  (six workload templates and a restricted debug container) were accepted, and
+  44 unsafe requests were rejected by this policy. Cases cover host access,
+  root/capability overrides, fake VPN containers, command/probe hooks, environment
+  injection, security profiles, and ephemeral-container updates. No probe Pods or
+  debug containers were created.
+- Deployment requires the policy and enforcing binding, rejects type errors and
+  stale type-check results, and proves a denial before applying the namespace's
+  VPN exception. A new namespace remains restricted during this check. Dry runs
+  use strict API-server validation without downloading kubectl's OpenAPI schema.
+- Both application service accounts (`default` and `edge`) were denied Pod
+  creation, namespace modification, admission-policy/binding modification, and
+  access to the WireGuard Secret. Edge retains its separate gateway-state access.
+- The live deployment stayed healthy without replacing application Pods.
+  All five torrent hashes, both applications' PVC bindings and enrolled gateway
+  identities were unchanged. The importer completed after enforcement began.
+  Private qBittorrent and Books logins worked. Both library databases passed
+  SQLite checks; the library retained 259 books and 510 formats.
+- Removed active upload/total-torrent queue caps while retaining the limit of
+  three downloads. All five torrents became eligible to seed. Their upload
+  counters advanced by more than 1 GB during this audit, with TCP and uTP peers.
+  This observation does not establish a controlled ratio improvement.
+- Repeated the VPN failure check with successful TCP, UDP DNS, and HTTPS
+  baselines. Direct `eth0` and IPv6 probes failed. Stopping the tunnel blocked
+  all three egress checks while local WebUI access returned HTTP 200; restarting
+  restored them. An early incoming probe timed out during recovery; subsequent
+  full external BitTorrent handshakes and UDP DHT replies passed automatically.
+  Public VPN port 8080 remained unreachable.
+
+Private baselines and results are retained under the operator directory's
+`security/` directory. The ephemeral reservation still expires approximately
+`2026-11-23T13:48:00Z`; admission hardening does not renew it.
