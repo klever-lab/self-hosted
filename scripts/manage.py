@@ -109,6 +109,10 @@ def enroll(namespace):
 
 
 def vpn(cfg):
+    peer_port = cfg.get('qbittorrent_forwarded_port', 6881)
+    # 8000 and 9999 are Gluetun's loopback control/health servers, and 8080 is the WebUI.
+    if type(peer_port) is not int or not 1024 <= peer_port <= 65535 or peer_port in (8000, 8080, 9999):
+        raise ValueError('qbittorrent_forwarded_port must be an available port from 1024 to 65535')
     profile_path = Path(cfg['wireguard_profile']).expanduser().resolve()
     if profile_path.is_relative_to(ROOT):
         raise ValueError('Keep the WireGuard profile outside the repository')
@@ -119,43 +123,49 @@ def vpn(cfg):
     profile.read(profile_path)
     endpoint = profile['Peer']['Endpoint']
     host, port = endpoint.rsplit(':', 1)
-    # A cached IP belongs to one endpoint; a replacement profile may name another.
-    cached = cfg.get('wireguard_endpoint_ip') if cfg.get('wireguard_endpoint') == endpoint else None
-    address = cached or socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)[0][4][0]
+    # Refresh the resolved IP when the endpoint or forwarded port changes so Windscribe
+    # establishes a fresh WireGuard session instead of keeping a pre-forward peer state.
+    forwarded = cfg.get('qbittorrent_forwarded_port')
+    port_changed = cfg.get('wireguard_forwarded_port') != forwarded
+    cached = cfg.get('wireguard_endpoint_ip') if cfg.get('wireguard_endpoint') == endpoint and not port_changed else None
+    if cached:
+        address = cached
+    else:
+        candidates = [item[4][0] for item in socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)]
+        previous_ip = cfg.get('wireguard_endpoint_ip') if cfg.get('wireguard_endpoint') == endpoint and port_changed else None
+        address = next((ip for ip in candidates if ip != previous_ip), candidates[0])
     if not ipaddress.ip_address(address).is_global:
         raise ValueError('The VPN endpoint must have a public address')
     cfg['wireguard_endpoint'] = endpoint
     cfg['wireguard_endpoint_ip'] = address
+    if forwarded is None:
+        cfg.pop('wireguard_forwarded_port', None)
+    else:
+        cfg['wireguard_forwarded_port'] = forwarded
     private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
-    peer = {'address': address, 'port': int(port), 'public_key': profile['Peer']['PublicKey'],
-            'allowed_ips': ['0.0.0.0/0'], 'persistent_keepalive_interval': 25}
-    if 'PresharedKey' in profile['Peer']:
-        peer['pre_shared_key'] = profile['Peer']['PresharedKey']
     tunnel_address = next(x.strip() for x in profile['Interface']['Address'].split(',') if ':' not in x)
-    dns = profile['Interface'].get('DNS', '1.1.1.1').split(',')[0].strip()
-    content = {
-        'log': {'level': 'warn'},
-        'dns': {'servers': [{'type': 'udp', 'tag': 'vpn-dns', 'server': dns, 'detour': 'vpn'}],
-                'strategy': 'ipv4_only'},
-        'inbounds': [
-            {'type': 'socks', 'tag': 'socks', 'listen': '127.0.0.1', 'listen_port': 1080},
-            {'type': 'direct', 'tag': 'dns', 'listen': '127.0.0.1', 'listen_port': 53,
-             'override_address': dns, 'override_port': 53},
-        ],
-        # Flannel over Tailscale gives this cluster 1230-byte pod interfaces.
-        # Leave room for the outer WireGuard IPv4/UDP/encryption headers.
-        'endpoints': [{'type': 'wireguard', 'tag': 'vpn', 'system': False, 'mtu': 1120,
-                       'udp_fragment': True,
-                       'address': [tunnel_address], 'private_key': profile['Interface']['PrivateKey'],
-                       'peers': [peer]}],
-        'route': {'final': 'vpn', 'default_domain_resolver': 'vpn-dns'},
-    }
+    lines = [
+        '[Interface]',
+        'PrivateKey = ' + profile['Interface']['PrivateKey'].strip(),
+        'Address = ' + tunnel_address,
+        '',
+        '[Peer]',
+        'PublicKey = ' + profile['Peer']['PublicKey'].strip(),
+    ]
+    if 'PresharedKey' in profile['Peer']:
+        lines.append('PresharedKey = ' + profile['Peer']['PresharedKey'].strip())
+    lines.append(f'Endpoint = {address}:{int(port)}')
+    vpn_input_ports = str(peer_port) if 'qbittorrent_forwarded_port' in cfg else ''
     policy = {'apiVersion': 'networking.k8s.io/v1', 'kind': 'NetworkPolicy',
         'metadata': {'name': 'wireguard-egress', 'namespace': 'qbittorrent'},
         'spec': {'podSelector': {'matchLabels': {'app': 'qbittorrent'}}, 'policyTypes': ['Egress'],
                  'egress': [{'to': [{'ipBlock': {'cidr': address + '/32'}}],
                              'ports': [{'protocol': 'UDP', 'port': int(port)}]}]}}
-    return secret('qbittorrent', 'wireguard', {'config.json': json.dumps(content)}), policy
+    return secret('qbittorrent', 'wireguard', {
+        'wg0.conf': '\n'.join(lines) + '\n',
+        'peer-port': str(peer_port),
+        'vpn-input-ports': vpn_input_ports,
+    }), policy
 
 
 def gateway(cfg, app):

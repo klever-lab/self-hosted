@@ -18,16 +18,11 @@ for section in ('BitTorrent', 'Network', 'WebUI', 'Preferences', 'Meta'):
         config.add_section(section)
 config['Meta']['MigrationVersion'] = '12'
 
-config['Network'].update({
-    'Proxy\\Type': 'SOCKS5',
-    'Proxy\\IP': '127.0.0.1',
-    'Proxy\\Port': '1080',
-    # Local DNS also travels inside WireGuard; resolve UDP tracker names before SOCKS.
-    'Proxy\\HostnameLookupEnabled': 'false',
-    'Proxy\\Profiles\\BitTorrent': 'true',
-    'Proxy\\Profiles\\RSS': 'true',
-    'Proxy\\Profiles\\Misc': 'true',
-})
+network = config['Network']
+for key in list(network):
+    if key.startswith('Proxy\\'):
+        del network[key]
+network.update({'Proxy\\Type': 'None', 'PortForwardingEnabled': 'false'})
 config['BitTorrent'].update({
     'Session\\DefaultSavePath': '/downloads/complete',
     'Session\\TempPath': '/downloads/incomplete',
@@ -36,8 +31,12 @@ config['BitTorrent'].update({
     'Session\\LSDEnabled': 'false',
     'Session\\PeXEnabled': 'true',
     'Session\\BTProtocol': 'Both',
-    'Session\\ProxyPeerConnections': 'true',
-    'Session\\Port': '6881',
+    'Session\\ProxyPeerConnections': 'false',
+    'Session\\Interface': 'wg0',
+    'Session\\InterfaceName': 'wg0',
+    'Session\\InterfaceAddress': '',
+    'Session\\Port': Path('/etc/vpn/peer-port').read_text().strip(),
+    'Session\\MultiConnectionsPerIp': 'false',
 })
 config['WebUI'].update({
     'Address': '*', 'Port': '8080',

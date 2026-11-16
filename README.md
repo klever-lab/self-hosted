@@ -4,7 +4,7 @@ Application deployments and integrations on [Guaranine](https://github.com/kleve
 Guaranine owns the Kubernetes platform. This repository owns the applications.
 
 - **qBittorrent / VueTorrent:** private HTTPS administration, persistent downloads, and a dedicated
-  Windscribe WireGuard connection through a non-root userspace proxy.
+  Windscribe WireGuard tunnel via Gluetun (`wg0` interface binding and kill switch).
 - **Calibre-Web / K Books:** authenticated HTTPS library, EPUB/KEPUB support, and
   per-user Kobo sync. The library is available only through Tailscale.
 - **Book importer:** completed downloads in qBittorrent's `books` category are uploaded

@@ -3,7 +3,9 @@ kind: Namespace
 metadata:
   name: qbittorrent
   labels:
-    pod-security.kubernetes.io/enforce: restricted
+    # Gluetun needs CAP_NET_ADMIN in the pod network namespace for wg0 and its kill switch;
+    # qBittorrent and every other container remain non-root with all capabilities dropped.
+    pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/enforce-version: latest
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
@@ -75,7 +77,6 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         supplementalGroupsPolicy: Strict
         seccompProfile: {type: RuntimeDefault}
-        sysctls: [{name: net.ipv4.ip_unprivileged_port_start, value: "0"}]
       initContainers:
         - name: configure
           image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9
@@ -89,25 +90,48 @@ spec:
             - {name: downloads, mountPath: /downloads}
             - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
             - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
         - name: vpn
           restartPolicy: Always
-          image: ghcr.io/sagernet/sing-box:v1.14.4@sha256:0788ffbddab2c68a99a2dd4780bbc50902f159af6f589df3ee74a8389d278279
-          args: [run, -c, /etc/vpn/config.json]
+          image: qmcgaw/gluetun:v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027
+          command: [/bin/sh, -ec, 'ip rule del table 51820 2>/dev/null || true; ip -6 rule del table 51820 2>/dev/null || true; exec /gluetun-entrypoint']
           env:
-            - {name: GOMEMLIMIT, value: 768MiB}
+            - {name: VPN_SERVICE_PROVIDER, value: custom}
+            - {name: VPN_TYPE, value: wireguard}
+            - {name: VPN_INTERFACE, value: wg0}
+            - {name: WIREGUARD_IMPLEMENTATION, value: kernelspace}
+            - {name: WIREGUARD_CONF_SECRETFILE, value: /etc/vpn/wg0.conf}
+            # Flannel over Tailscale gives pods 1230-byte interfaces; keep headroom for outer WireGuard headers.
+            - {name: WIREGUARD_MTU, value: "1120"}
+            - {name: WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL, value: 25s}
+            - {name: FIREWALL_INPUT_PORTS, value: "8080"}
+            - {name: FIREWALL_VPN_INPUT_PORTS, valueFrom: {secretKeyRef: {name: wireguard, key: vpn-input-ports}}}
+            - {name: BLOCK_MALICIOUS, value: "off"}
+            - {name: HEALTH_SMALL_CHECK_TYPE, value: dns}
+            - {name: HTTP_CONTROL_SERVER_ADDRESS, value: "127.0.0.1:8000"}
+            - {name: PUBLICIP_ENABLED, value: "off"}
+            - {name: PUID, value: "0"}
+            - {name: PGID, value: "0"}
+            - {name: TZ, value: America/New_York}
           securityContext:
+            runAsNonRoot: false
+            runAsUser: 0
+            runAsGroup: 0
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities: {drop: [ALL]}
+            capabilities:
+              drop: [ALL]
+              add: [NET_ADMIN, NET_BIND_SERVICE]
           resources:
-            requests: {cpu: 25m, memory: 256Mi}
-            limits: {cpu: "1", memory: 1Gi}
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: "1", memory: 512Mi}
           startupProbe:
-            exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
+            exec: {command: [/gluetun-entrypoint, healthcheck]}
             periodSeconds: 2
             failureThreshold: 30
           readinessProbe:
-            exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
+            exec: {command: [/gluetun-entrypoint, healthcheck]}
+            periodSeconds: 10
+            timeoutSeconds: 5
           volumeMounts:
             - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
         - name: webui

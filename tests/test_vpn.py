@@ -1,6 +1,7 @@
-"""Keep the VPN endpoint and its egress policy aligned when profiles change."""
+"""Keep the VPN tunnel, firewall port forward, and pod security boundaries aligned."""
 
 import base64
+import configparser
 import json
 from pathlib import Path
 import socket
@@ -9,7 +10,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
 import manage
 
 
@@ -21,11 +25,12 @@ class VPNEndpointTests(unittest.TestCase):
         profile = self.state / 'wireguard.conf'
         profile.write_text('''[Interface]
 PrivateKey = test-private-key
-Address = 10.64.0.2/32
-DNS = 1.1.1.1
+Address = 10.64.0.2/32, fd00::2/128
+DNS = 10.255.255.3
 
 [Peer]
 PublicKey = test-public-key
+PresharedKey = test-preshared-key
 Endpoint = new-vpn.example:443
 ''')
         profile.chmod(0o600)
@@ -34,9 +39,19 @@ Endpoint = new-vpn.example:443
         state_patch.start()
         self.addCleanup(state_patch.stop)
 
+    def parse_wg(self, secret):
+        parser = configparser.ConfigParser()
+        parser.optionxform = str
+        parser.read_string(base64.b64decode(secret['data']['wg0.conf']).decode())
+        return parser
+
     def assert_endpoint(self, secret, policy, address):
-        config = json.loads(base64.b64decode(secret['data']['config.json']))
-        self.assertEqual(config['endpoints'][0]['peers'][0]['address'], address)
+        wg = self.parse_wg(secret)
+        self.assertEqual(wg['Interface']['PrivateKey'], 'test-private-key')
+        self.assertEqual(wg['Interface']['Address'], '10.64.0.2/32')
+        self.assertEqual(wg['Peer']['PublicKey'], 'test-public-key')
+        self.assertEqual(wg['Peer']['PresharedKey'], 'test-preshared-key')
+        self.assertEqual(wg['Peer']['Endpoint'], f'{address}:443')
         self.assertEqual(policy['spec']['egress'], [{
             'to': [{'ipBlock': {'cidr': address + '/32'}}],
             'ports': [{'protocol': 'UDP', 'port': 443}],
@@ -62,6 +77,63 @@ Endpoint = new-vpn.example:443
         with patch.object(manage.socket, 'getaddrinfo', side_effect=AssertionError('Unexpected DNS query')):
             secret, policy = manage.vpn(self.cfg)
         self.assert_endpoint(secret, policy, '8.8.8.8')
+
+    def test_forward_opens_only_the_configured_vpn_peer_port_and_rotates_server_ip(self):
+        self.cfg.update(wireguard_endpoint='new-vpn.example:443', qbittorrent_forwarded_port=10837)
+        answers = [
+            (socket.AF_INET, socket.SOCK_DGRAM, 17, '', ('8.8.8.8', 443)),
+            (socket.AF_INET, socket.SOCK_DGRAM, 17, '', ('1.1.1.1', 443)),
+        ]
+        with patch.object(manage.socket, 'getaddrinfo', return_value=answers) as resolve:
+            secret, policy = manage.vpn(self.cfg)
+        resolve.assert_called_once_with('new-vpn.example', 443, socket.AF_INET, socket.SOCK_DGRAM)
+        self.assertEqual(base64.b64decode(secret['data']['peer-port']), b'10837')
+        self.assertEqual(base64.b64decode(secret['data']['vpn-input-ports']), b'10837')
+        self.assert_endpoint(secret, policy, '1.1.1.1')
+        saved = json.loads((self.state / 'config.json').read_text())
+        self.assertEqual(saved['wireguard_forwarded_port'], 10837)
+        with patch.object(manage.socket, 'getaddrinfo', side_effect=AssertionError('Unexpected DNS query')):
+            manage.vpn(saved)
+
+    def test_no_forward_leaves_vpn_input_ports_closed(self):
+        self.cfg['wireguard_endpoint'] = 'new-vpn.example:443'
+        secret, _ = manage.vpn(self.cfg)
+        self.assertEqual(base64.b64decode(secret['data']['peer-port']), b'6881')
+        self.assertEqual(base64.b64decode(secret['data']['vpn-input-ports']), b'')
+
+    def test_invalid_or_conflicting_peer_port_cannot_change_configuration(self):
+        for port in (True, '10837', -1, 0, 53, 8000, 8080, 9999, 65536):
+            with self.subTest(port=port), self.assertRaisesRegex(ValueError, 'forwarded_port'):
+                manage.vpn(dict(self.cfg, qbittorrent_forwarded_port=port))
+        self.assertFalse((self.state / 'config.json').exists())
+
+    def test_qbittorrent_remains_unprivileged_and_bound_to_wg0(self):
+        docs = [doc for doc in yaml.safe_load_all((ROOT / 'apps/qbittorrent/stack.yaml').read_text()) if doc]
+        deployment = next(doc for doc in docs if doc['kind'] == 'Deployment' and doc['metadata']['name'] == 'qbittorrent')
+        spec = deployment['spec']['template']['spec']
+        for host_key in ('hostNetwork', 'hostPID', 'hostIPC'):
+            self.assertFalse(spec.get(host_key))
+        for volume in spec['volumes']:
+            self.assertNotIn('hostPath', volume)
+        pod_sec = spec['securityContext']
+        self.assertTrue(pod_sec['runAsNonRoot'])
+        self.assertEqual(pod_sec['runAsUser'], 1000)
+        containers = {c['name']: c for c in spec['initContainers'] + spec['containers']}
+        for name in ('configure', 'webui', 'qbittorrent'):
+            sec = containers[name]['securityContext']
+            self.assertFalse(sec['allowPrivilegeEscalation'])
+            self.assertTrue(sec['readOnlyRootFilesystem'])
+            self.assertEqual(sec['capabilities'], {'drop': ['ALL']})
+            self.assertNotIn('privileged', sec)
+            self.assertNotIn('runAsUser', sec)
+        vpn_sec = containers['vpn']['securityContext']
+        self.assertFalse(vpn_sec['allowPrivilegeEscalation'])
+        self.assertNotIn('privileged', vpn_sec)
+        self.assertEqual(vpn_sec['capabilities'], {'drop': ['ALL'], 'add': ['NET_ADMIN', 'NET_BIND_SERVICE']})
+        bootstrap = (ROOT / 'apps/qbittorrent/bootstrap.py').read_text()
+        self.assertIn("'Session\\\\Interface': 'wg0'", bootstrap)
+        self.assertIn("'Session\\\\InterfaceName': 'wg0'", bootstrap)
+        self.assertIn("'Proxy\\\\Type': 'None'", bootstrap)
 
 
 if __name__ == '__main__':

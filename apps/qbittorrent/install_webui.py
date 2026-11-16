@@ -1,4 +1,4 @@
-"""Install the checksum-pinned VueTorrent release through the local VPN proxy."""
+"""Install the checksum-pinned VueTorrent release through the VPN tunnel."""
 
 import hashlib
 import json
@@ -20,8 +20,7 @@ def install(pin, root=Path('/config/webui')):
         archive = stage / 'vuetorrent.zip'
         subprocess.run(['curl', '--fail', '--silent', '--show-error', '--location',
                         '--retry', '2', '--connect-timeout', '15', '--max-time', '90',
-                        '--proxy', 'socks5h://127.0.0.1:1080', pin['url'],
-                        '--output', str(archive)], check=True)
+                        pin['url'], '--output', str(archive)], check=True)
         if hashlib.sha256(archive.read_bytes()).hexdigest() != pin['sha256']:
             raise ValueError('VueTorrent archive checksum mismatch')
         with zipfile.ZipFile(archive) as contents:

@@ -5,14 +5,12 @@ existing worker; Guaranine's control plane remains dedicated to platform work.
 Both applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
-The qBittorrent VPN proxy has a 1 GiB memory limit and `GOMEMLIMIT=768MiB`.
-The [Go runtime memory target](https://go.dev/doc/gc-guide#Memory_limit) encourages
-garbage collection below the container limit, leaving headroom for other process
-and kernel allocations. It is a soft target, not a hard bound. Earlier 128 MiB
-and 512 MiB container limits caused OOM kills during peer transfers; each restart
-disconnected peers and interrupted downloads. Check the `vpn` init container's
-restart count and last termination reason when investigating sudden download-speed
-drops.
+The qBittorrent pod runs Gluetun (`vpn` sidecar) in kernel WireGuard mode (`wg0`)
+with a 512 MiB memory limit. Only the `vpn` sidecar receives `CAP_NET_ADMIN` inside
+the pod's isolated network namespace; `qbittorrent` and all other containers remain
+non-root (`UID 1000`) with read-only root filesystems and all capabilities dropped.
+Check the `vpn` init container's restart count and health status when investigating
+connectivity drops.
 
 ## Seeding and incoming peers
 
@@ -37,10 +35,13 @@ completed live change.
 The plan agreed on 2026-11-16 is to trial Windscribe's
 [ephemeral port forwarding](https://windscribe.com/knowledge-base/articles/what-is-ephemeral-port-forwarding-and-how-to-use-it)
 first. Pro accounts include one temporary forward, which expires after seven
-days; record its port and expiry in protected operator storage. The current
-SOCKS5 peer-proxy path does not accept incoming TCP connections, so the trial
-also requires a VPN routing change that delivers incoming peer traffic to
-qBittorrent. Preserve VPN-only torrent traffic and private WebUI access.
+days; record its port and expiry in protected operator storage. Gluetun brings up
+the kernel WireGuard `wg0` interface with its kill-switch firewall opening only
+the forwarded port on `wg0` (`FIREWALL_VPN_INPUT_PORTS`), while qBittorrent binds
+peer traffic directly to `wg0`. The pod's internet egress remains restricted to
+its WireGuard server by both Gluetun's firewall and Kubernetes `NetworkPolicy`,
+and the WebUI remains private. See [seeding operations](seeding.md) for the
+routing details and live checks.
 
 Verify the forwarded peer port from outside the VPN and compare uploaded bytes
 over comparable periods with the same torrents and queue settings. If incoming

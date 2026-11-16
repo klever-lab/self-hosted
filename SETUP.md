@@ -72,6 +72,21 @@ the VPN and its egress policy together. The restart preserves torrents, download
 and the gateway identity. An HTTPS check alone does not establish P2P connectivity;
 check that peers connect and download progress advances.
 
+For an incoming-peer port trial, reserve a **Matching Port** under the Windscribe
+Pro account's **Port Forwarding** page. Add `qbittorrent_forwarded_port` with that
+integer port to the protected `config.json`, then run
+`./self-hosted deploy qbittorrent`. Both the VPN firewall and qBittorrent's
+bound `wg0` peer listener use that number. Ports 8000, 8080, and 9999 are reserved
+for Gluetun's local control/health servers and the WebUI. Keep the WireGuard profile
+and account credentials outside Git.
+Ephemeral reservations expire after seven days; record the deadline in
+`qbittorrent_forward_expires_at` (UTC ISO 8601) in the same protected file. This
+deadline is an operator reminder, not an automatic renewal. Request the next
+reservation through Windscribe and update the port before redeploying. To stop
+forwarding incoming peers, remove those two fields and deploy qBittorrent again.
+The [seeding operations guide](docs/seeding.md) covers validation and the planned
+move to a static IP if the trial is effective.
+
 The administrator username/password are retained in protected
 `access.json`. If you change qBittorrent's password through its UI, update that file
 and deploy again so the importer can authenticate. Redeployment preserves user
