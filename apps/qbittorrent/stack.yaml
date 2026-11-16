@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qbittorrent
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: config}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: downloads}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 200Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: qbittorrent}
+spec:
+  selector: {app: qbittorrent}
+  ports: [{name: http, port: 8080, targetPort: 8080}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: qbittorrent-web}
+spec:
+  podSelector: {matchLabels: {app: qbittorrent}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app: edge}}
+        - podSelector: {matchLabels: {app: book-importer}}
+      ports: [{protocol: TCP, port: 8080}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: edge-upstream}
+spec:
+  podSelector: {matchLabels: {app: edge}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {app: qbittorrent}}}]
+      ports: [{protocol: TCP, port: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: qbittorrent}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: qbittorrent}}
+  template:
+    metadata: {labels: {app: qbittorrent}}
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 1800
+      dnsPolicy: None
+      dnsConfig:
+        nameservers: [127.0.0.1]
+        options: [{name: ndots, value: "1"}]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+        sysctls: [{name: net.ipv4.ip_unprivileged_port_start, value: "0"}]
+      initContainers:
+        - name: configure
+          image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9
+          command: [python3, /bootstrap/bootstrap.py]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /config}
+            - {name: downloads, mountPath: /downloads}
+            - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+        - name: vpn
+          restartPolicy: Always
+          image: ghcr.io/sagernet/sing-box:v1.14.4@sha256:0788ffbddab2c68a99a2dd4780bbc50902f159af6f589df3ee74a8389d278279
+          args: [run, -c, /etc/vpn/config.json]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: "1", memory: 128Mi}
+          startupProbe:
+            exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
+          volumeMounts:
+            - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
+      containers:
+        - name: qbittorrent
+          image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9
+          env:
+            - {name: QBT_LEGAL_NOTICE, value: confirm}
+            - {name: QBT_WEBUI_PORT, value: "8080"}
+            - {name: UMASK, value: "0027"}
+            - {name: TZ, value: America/New_York}
+            - {name: HOME, value: /config}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "2", memory: 1Gi}
+          startupProbe: {httpGet: {path: /, port: 8080}, periodSeconds: 5, failureThreshold: 36}
+          readinessProbe: {httpGet: {path: /, port: 8080}}
+          volumeMounts:
+            - {name: config, mountPath: /config}
+            - {name: downloads, mountPath: /downloads}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: config, persistentVolumeClaim: {claimName: config}}
+        - {name: downloads, persistentVolumeClaim: {claimName: downloads}}
+        - {name: bootstrap, configMap: {name: qbittorrent-bootstrap}}
+        - {name: credentials, secret: {secretName: credentials, defaultMode: 0440}}
+        - {name: wireguard, secret: {secretName: wireguard, defaultMode: 0440}}
+        - {name: tmp, emptyDir: {sizeLimit: 128Mi}}

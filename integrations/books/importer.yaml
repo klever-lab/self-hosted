@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: book-import-state}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: book-importer}
+spec:
+  podSelector: {matchLabels: {app: book-importer}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {app: qbittorrent}}}]
+      ports: [{protocol: TCP, port: 8080}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: calibre-web}}
+          podSelector: {matchLabels: {app: calibre-web}}
+      ports: [{protocol: TCP, port: 8083}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata: {name: book-importer}
+spec:
+  schedule: '*/2 * * * *'
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 90
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 600
+      template:
+        metadata: {labels: {app: book-importer}}
+        spec:
+          automountServiceAccountToken: false
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
+            supplementalGroupsPolicy: Strict
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: importer
+              image: ghcr.io/bjw-s-labs/calibre-web:0.6.27@sha256:5d08f83d3bb2ca51bcce0ca46c2c2c59aa4bbb6c384317dac7f241e51c976e58
+              command: [python3, /scripts/import_books.py]
+              env:
+                - {name: QBITTORRENT_URL, value: 'http://qbittorrent:8080'}
+                - {name: CALIBRE_URL, value: 'http://calibre-web.calibre-web.svc.cluster.local:8083'}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources: {requests: {cpu: 50m, memory: 64Mi}, limits: {cpu: "1", memory: 512Mi}}
+              volumeMounts:
+                - {name: scripts, mountPath: /scripts, readOnly: true}
+                - {name: downloads, mountPath: /downloads, readOnly: true}
+                - {name: state, mountPath: /state}
+                - {name: credentials, mountPath: /credentials, readOnly: true}
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - {name: scripts, configMap: {name: book-importer}}
+            - {name: downloads, persistentVolumeClaim: {claimName: downloads}}
+            - {name: state, persistentVolumeClaim: {claimName: book-import-state}}
+            - {name: credentials, secret: {secretName: book-importer, defaultMode: 0440}}
+            - {name: tmp, emptyDir: {sizeLimit: 32Mi}}

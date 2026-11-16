@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: edge}
+automountServiceAccountToken: false
+---
+# Enrollment and Tailscale own data; deployment must preserve the identity.
+apiVersion: v1
+kind: Secret
+metadata: {name: tailscale-state}
+type: Opaque
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: edge}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [tailscale-state]
+    verbs: [get, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: edge}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: edge}
+subjects: [{kind: ServiceAccount, name: edge}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: edge}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: edge}}
+  template:
+    metadata: {labels: {app: edge}}
+    spec:
+      serviceAccountName: edge
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: tailscale
+          image: tailscale/tailscale:v1.104.7@sha256:72c1e19e0aedca96b8533bbb0b4368564410ff20b17e53b804eb6c1f04a31be4
+          env:
+            - {name: TS_HOSTNAME, valueFrom: {configMapKeyRef: {name: edge-config, key: hostname}}}
+            - {name: TS_USERSPACE, value: "true"}
+            - {name: TS_AUTH_ONCE, value: "true"}
+            - {name: TS_ACCEPT_DNS, value: "false"}
+            - {name: TS_EXTRA_ARGS, value: "--accept-routes=false --ssh=false"}
+            - {name: TS_NO_LOGS_NO_SUPPORT, value: "true"}
+            - {name: TS_KUBE_SECRET, value: tailscale-state}
+            - {name: TS_STATE_DIR, value: /var/lib/tailscale}
+            - {name: TS_SOCKET, value: /var/run/tailscale/tailscaled.sock}
+            - {name: TS_SERVE_CONFIG, value: /etc/tailscale/serve.json}
+            - {name: TS_ENABLE_HEALTH_CHECK, value: "true"}
+            - {name: TS_LOCAL_ADDR_PORT, value: "0.0.0.0:9002"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          readinessProbe: {httpGet: {path: /healthz, port: 9002}}
+          volumeMounts:
+            - {name: config, mountPath: /etc/tailscale, readOnly: true}
+            - {name: state, mountPath: /var/lib/tailscale}
+            - {name: socket, mountPath: /var/run/tailscale}
+            - {name: tmp, mountPath: /tmp}
+            - {name: token, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+      volumes:
+        - {name: config, configMap: {name: edge-config}}
+        - {name: state, emptyDir: {sizeLimit: 64Mi}}
+        - {name: socket, emptyDir: {sizeLimit: 1Mi}}
+        - {name: tmp, emptyDir: {sizeLimit: 32Mi}}
+        - name: token
+          projected:
+            sources:
+              - serviceAccountToken: {path: token, expirationSeconds: 3600}
+              - configMap:
+                  name: kube-root-ca.crt
+                  items: [{key: ca.crt, path: ca.crt}]
+              - downwardAPI:
+                  items: [{path: namespace, fieldRef: {fieldPath: metadata.namespace}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: edge-transport}
+spec:
+  podSelector: {matchLabels: {app: edge}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to: [{ipBlock: {cidr: 10.43.0.1/32}}]
+      ports: [{protocol: TCP, port: 443}]
+    - to: [{ipBlock: {cidr: 100.64.0.0/10}}]
+      ports: [{protocol: TCP, port: 6443}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16, 127.0.0.0/8]
+      ports: [{protocol: TCP, port: 443}, {protocol: UDP}]

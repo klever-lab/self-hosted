@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: edge}
+spec:
+  template:
+    spec:
+      containers:
+        - name: caddy
+          image: docker.io/library/caddy:2-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+          command: [caddy]
+          args: [run, --config, /etc/caddy/Caddyfile, --adapter, caddyfile]
+          env:
+            - {name: XDG_DATA_HOME, value: /tmp/caddy-data}
+            - {name: XDG_CONFIG_HOME, value: /tmp/caddy-config}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: 500m, memory: 96Mi}}
+          readinessProbe: {httpGet: {path: /healthz, port: 8080}}
+          volumeMounts:
+            - {name: caddy-config, mountPath: /etc/caddy, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: caddy-config, configMap: {name: calibre-proxy}}

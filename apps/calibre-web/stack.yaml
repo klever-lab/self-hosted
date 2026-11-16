@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: calibre-web
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: config}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: library}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 20Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: calibre-web}
+spec:
+  selector: {app: calibre-web}
+  ports: [{name: http, port: 8083, targetPort: 8083}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: calibre-web}
+spec:
+  podSelector: {matchLabels: {app: calibre-web}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {matchLabels: {app: edge}}
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: qbittorrent}}
+          podSelector: {matchLabels: {app: book-importer}}
+      ports: [{protocol: TCP, port: 8083}]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10, 169.254.0.0/16, 127.0.0.0/8]
+      ports: [{protocol: TCP, port: 443}, {protocol: TCP, port: 80}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: edge-upstream}
+spec:
+  podSelector: {matchLabels: {app: edge}}
+  policyTypes: [Egress]
+  egress:
+    - to: [{podSelector: {matchLabels: {app: calibre-web}}}]
+      ports: [{protocol: TCP, port: 8083}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: calibre-web}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: calibre-web}}
+  template:
+    metadata: {labels: {app: calibre-web}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: configure
+          image: ghcr.io/bjw-s-labs/calibre-web:0.6.27@sha256:5d08f83d3bb2ca51bcce0ca46c2c2c59aa4bbb6c384317dac7f241e51c976e58
+          command: [python3, /bootstrap/bootstrap.py]
+          env: &environment
+            - {name: HOME, value: /config}
+            - {name: CALIBRE_DBPATH, value: /config}
+            - {name: CALIBRE_CONFIG_DIRECTORY, value: /config/calibre}
+            - {name: XDG_CACHE_HOME, value: /tmp/cache}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: "1", memory: 512Mi}}
+          volumeMounts:
+            - {name: config, mountPath: /config}
+            - {name: library, mountPath: /books}
+            - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: tools, mountPath: /tools}
+            - {name: tmp, mountPath: /tmp}
+      containers:
+        - name: calibre-web
+          image: ghcr.io/bjw-s-labs/calibre-web:0.6.27@sha256:5d08f83d3bb2ca51bcce0ca46c2c2c59aa4bbb6c384317dac7f241e51c976e58
+          args: [-p, /config/app.db, -g, /config/gdrive.db, -i, 0.0.0.0]
+          env: *environment
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "2", memory: 768Mi}
+          startupProbe: {httpGet: {path: /login, port: 8083}, periodSeconds: 5, failureThreshold: 36}
+          readinessProbe: {httpGet: {path: /login, port: 8083}}
+          volumeMounts:
+            - {name: config, mountPath: /config}
+            - {name: library, mountPath: /books}
+            - {name: tools, mountPath: /tools, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: config, persistentVolumeClaim: {claimName: config}}
+        - {name: library, persistentVolumeClaim: {claimName: library}}
+        - {name: bootstrap, configMap: {name: calibre-bootstrap}}
+        - {name: credentials, secret: {secretName: credentials, defaultMode: 0440}}
+        - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
+        - {name: tools, emptyDir: {sizeLimit: 16Mi}}

@@ -1,0 +1,11 @@
+*.conf
+*.key
+*.pem
+.env*
+.private/
+__pycache__/
+*.pyc
+*.db
+*.sqlite*
+*.tar*
+!apps/calibre-web/empty-library.db
