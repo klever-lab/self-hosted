@@ -61,3 +61,22 @@ Calibre-Web account preserves its user ID, library access, and Kobo token.
 
 See [Kobo setup](docs/kobo.md) to pair a reader, and [operations](docs/operations.md)
 to back up state before substantial changes.
+
+## Kobo Tailscale source
+
+The Clara BW installation uses our fork, [klever-lab/kobo-tailscale](https://github.com/klever-lab/kobo-tailscale),
+pinned to commit `475e17318361a125c8911cb7f1ebc1e8f53292f2`:
+
+```bash
+git clone https://github.com/klever-lab/kobo-tailscale.git "$HOME/kobo-tailscale"
+git -C "$HOME/kobo-tailscale" checkout --detach 475e17318361a125c8911cb7f1ebc1e8f53292f2
+```
+
+Follow the fork's `clara-bw/README.md` for installation. It pins and verifies the
+official Tailscale archive. Check the reader's firmware and back up its settings
+before copying an installer to it; NickelMenu currently does not support firmware
+5.x. Physical installation and sync still need verification on the reader.
+
+Keep downloaded archives, prepared device files, enrollment keys and identity
+backups under the protected operator directory, outside both checkouts. When
+updating the fork, validate it and update the pinned commit here together.

@@ -15,8 +15,13 @@ For each Kobo:
 
 Treat the generated endpoint as a password. Each account has its own token, which
 can be revoked from the profile. The books endpoint is private to Tailscale. Kobo
-sync requires the reader's network to route through an authorized Tailscale device;
+sync requires Tailscale on the reader or its network to route through an authorized Tailscale device;
 ordinary Wi-Fi alone cannot reach it. The device must support the server's HTTPS certificate.
+
+For the Clara BW, use the [pinned installer from our fork](../SETUP.md#kobo-tailscale-source).
+It preserves Kobo's DNS configuration, so private HTTPS names need a resolver or
+local hostname mapping that points to the server's Tailscale address. Keep the
+HTTPS hostname when configuring sync so certificate validation works.
 
 The integration serves the self-hosted library; proxying the official Kobo store is
 disabled. Existing store purchases and device-side behavior should be checked on
