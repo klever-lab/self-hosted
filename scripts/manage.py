@@ -154,6 +154,16 @@ def vpn(cfg):
     return secret('qbittorrent', 'wireguard', {'config.json': json.dumps(content)}), policy
 
 
+def gateway(cfg, app):
+    upstream = 'http://qbittorrent:8080' if app == 'qbittorrent' else 'http://127.0.0.1:8080'
+    serve = {'TCP': {'443': {'HTTPS': True}},
+             'Web': {'${TS_CERT_DOMAIN}:443': {'Handlers': {'/': {'Proxy': upstream}}}},
+             'AllowFunnel': {'${TS_CERT_DOMAIN}:443': False}}
+    return {'apiVersion': 'v1', 'kind': 'ConfigMap',
+            'metadata': {'name': 'edge-config', 'namespace': app},
+            'data': {'hostname': cfg['hostnames'][app], 'serve.json': json.dumps(serve)}}
+
+
 def deploy(cfg, selected):
     access = load('access.json')
     fingerprints = {}
@@ -169,13 +179,7 @@ def deploy(cfg, selected):
             values['domain'] = cfg['hostnames'][app] + '.' + cfg['dns_suffix']
         fingerprints[app] = hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
         apply([secret(app, 'credentials', values)])
-        upstream = 'http://qbittorrent:8080' if app == 'qbittorrent' else 'http://127.0.0.1:8080'
-        serve = {'TCP': {'443': {'HTTPS': True}},
-                 'Web': {'${TS_CERT_DOMAIN}:443': {'Handlers': {'/': {'Proxy': upstream}}}},
-                 'AllowFunnel': {'${TS_CERT_DOMAIN}:443': app == 'calibre-web'}}
-        apply([{'apiVersion': 'v1', 'kind': 'ConfigMap',
-                'metadata': {'name': 'edge-config', 'namespace': app},
-                'data': {'hostname': cfg['hostnames'][app], 'serve.json': json.dumps(serve)}}])
+        apply([gateway(cfg, app)])
         enroll(app)
     if 'qbittorrent' in selected:
         vpn_items = list(vpn(cfg))

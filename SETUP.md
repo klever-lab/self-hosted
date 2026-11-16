@@ -35,9 +35,9 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
 
 The default hostnames are `qbittorrent` and `books` under your tailnet's `.ts.net`
 domain. Change them in the protected `config.json` **before initial enrollment**.
-qBittorrent is available to the existing authorized tailnet operator; Funnel is
-disabled for its gateway. Calibre-Web is publicly reachable over HTTPS, with anonymous
-browsing and public registration disabled. Its login is configured before startup.
+Both applications are available only to the existing authorized tailnet operator;
+Funnel is disabled for both gateways. Calibre-Web also requires authentication,
+with anonymous browsing and public registration disabled. Its login is configured before startup.
 Both gateways have no grant to administer other tailnet devices.
 
 To deploy an application independently:

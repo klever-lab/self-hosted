@@ -5,6 +5,14 @@ existing worker; Guaranine's control plane remains dedicated to platform work.
 Both applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
+## Private access
+
+Both HTTPS gateways disable Tailscale Funnel and accept connections only through
+the tailnet's access policy. Guaranine owns the policy and disables Funnel permission
+for the tailnet. Deployments preserve the existing gateway identities and hostnames.
+Devices without an authorized Tailscale connection cannot reach these applications;
+see [Kobo access requirements](kobo.md) before configuring a reader.
+
 ## Storage
 
 qBittorrent requests 1 GiB for configuration and 200 GiB for downloads. Its import

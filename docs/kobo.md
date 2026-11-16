@@ -14,8 +14,9 @@ For each Kobo:
    Calibre-Web endpoint. Save, eject, then sync the reader over Wi-Fi.
 
 Treat the generated endpoint as a password. Each account has its own token, which
-can be revoked from the profile. No Tailscale client is needed on the Kobo because
-the books endpoint uses Funnel. The device must support the server's HTTPS certificate.
+can be revoked from the profile. The books endpoint is private to Tailscale. Kobo
+sync requires the reader's network to route through an authorized Tailscale device;
+ordinary Wi-Fi alone cannot reach it. The device must support the server's HTTPS certificate.
 
 The integration serves the self-hosted library; proxying the official Kobo store is
 disabled. Existing store purchases and device-side behavior should be checked on

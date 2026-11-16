@@ -1,5 +1,8 @@
 # Initial deployment verification
 
+The public Funnel check below records the original deployment. It is superseded
+by the private access configuration described in [operations](operations.md#private-access).
+
 Verified against the live Guaranine deployment on 2026-11-16 UTC:
 
 - Kubernetes accepted the manifests with restricted Pod Security. Applications and
@@ -28,3 +31,20 @@ These checks cover the server-side Kobo protocol. The physical reader was not
 connected and still needs its one-time endpoint configuration. A complete restore
 onto a replacement worker has not been exercised. Download payloads are excluded
 from the application-state backup, as described in [operations](operations.md).
+
+## Private access verification
+
+Verified on 2026-11-16 UTC after disabling public access:
+
+- The live tailnet policy passed its access tests and matched the repository policy
+  with no Funnel permissions. The previous policy was backed up outside Git.
+- All four application gateways reported Funnel disabled. Books, qBittorrent,
+  Jellyfin and Grafana responded over their private Tailscale addresses.
+- HTTPS connections forced through every public IPv4 relay address for Books,
+  Jellyfin and qBittorrent failed before receiving an HTTP response, including
+  addresses cached before the change.
+- The cluster had no Ingress resources, public Services, host-network pods or
+  host ports. Persistent-volume bindings, application writer pods and enrolled
+  gateway identities were preserved.
+- Jellyfin's live verification passed its private HTTPS, source-address,
+  restricted RBAC and egress-isolation checks.
