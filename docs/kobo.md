@@ -35,11 +35,42 @@ local hostname mapping that points to the server's Tailscale address. Keep the
 HTTPS hostname when configuring sync so certificate validation works.
 
 The reader has a separate Tailscale tag that permits only Books HTTPS. Its node
-identity and logs stay on the private system partition, and unsolicited tailnet
-connections, SSH and advertised routes are disabled. The installation bootstrap
+identity and logs stay on the private system partition. The default installation
+blocks incoming tailnet connections and disables SSH and advertised routes. The installation bootstrap
 adds the Books hostname mapping without changing the official store sync endpoint.
 The fork's [security review](https://github.com/klever-lab/kobo-tailscale/blob/main/SECURITY.md)
 records its package checks, isolated tests and remaining physical checks.
+
+## Direct laptop maintenance
+
+The installed Tailscale 1.104.7 client includes an SSH server and SFTP. No update
+server, cluster workload or additional SSH daemon is needed. Apply Guaranine's
+[laptop-only reader policy](https://github.com/klever-lab/guaranine/blob/main/docs/security.md#tailnet-policy)
+before enabling access. It permits TCP 22 from the enrolled operator laptop only,
+over IPv4 and IPv6, and requires the operator's Tailscale identity with a root SSH
+check every 12 hours. The reader retains its Books-only outbound grant.
+
+After safely ejecting and unplugging USB, enable Wi-Fi and choose
+**NickelMenu → Enable laptop access**. From the operator laptop, connect with:
+
+```bash
+tailscale ssh root@kobo-clara-bw
+```
+
+Complete Tailscale's browser authentication check when requested. SCP/SFTP can
+then copy reviewed files directly from the laptop to the reader. Keep library
+settings, databases and `/usr/local/tailscale/state` intact; updating the menu or
+status helper does not require reinstalling or enrolling Tailscale again. Do not
+write onboard storage remotely while it is exported over USB.
+
+**Disable laptop access** disables SSH and blocks incoming Tailscale connections;
+library access remains available. Access settings persist across daemon restarts.
+Running **Set up Tailscale** restores the installer's default blocked settings,
+so enable laptop access again afterward if needed. Tailscale's SSH server handles
+only tailnet traffic and opens no public or Wi-Fi LAN SSH listener. Its native
+operation on this reader still requires a physical connection check after staging.
+
+## Library synchronization
 
 The integration serves the self-hosted library; proxying the official Kobo store is
 disabled. Existing store purchases and device-side behavior should be checked on

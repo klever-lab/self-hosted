@@ -101,5 +101,20 @@ caused NickelMenu to display a process error. The menu now uses 9,000 ms and sho
 a readable fallback when the saved result cannot be read. The HTTPS probe has
 an outer five-second deadline so a stalled request fits within the menu timeout.
 Regression tests reproduced both reported errors and the stalled-request case
-before these fixes, then passed with the corrected commands. Native readback of
-the final correction and the screen results remain separate physical checks.
+before these fixes, then passed with the corrected commands. The corrected menu
+and status helper were subsequently copied to the mounted reader and their
+SHA-256 hashes matched the repository. Screen results remain a separate check.
+
+Direct laptop maintenance was staged using Tailscale's existing SSH server, with
+explicit enable/disable menu controls. All 21 local tests and ShellCheck passed,
+including failed changes and deadlines for a stalled CLI and rollback. The live
+tailnet policy passed 22 network test cases and three SSH test cases before being
+applied with an ETag precondition and verified by exact readback. It permits only
+the enrolled laptop on TCP 22 in either address family and requires an operator
+root SSH browser check every 12 hours. The broader operator grant excludes both
+reader addresses, and another enrolled operator device is explicitly denied.
+Books-only reader egress and Jellyfin's separate Funnel permission were preserved.
+USB readback verified all three staged files; the reader configuration, database
+and Books hostname file retained their original hashes. The reader was safely
+ejected. Native SSH commands, SFTP and the new menu controls remain pending until
+Wi-Fi is reconnected and laptop access is enabled on the physical reader.

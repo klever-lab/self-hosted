@@ -56,6 +56,7 @@ class KoboCommandTests(unittest.TestCase):
         # Debian's awk link uses /etc/alternatives, outside the isolated filesystem.
         (self.tools / 'awk').symlink_to(Path(shutil.which('awk')).resolve())
         shutil.copyfile(ROOT / 'integrations/kobo/status.sh', self.setup / 'status.sh')
+        shutil.copyfile(ROOT / 'integrations/kobo/maintenance.sh', self.setup / 'maintenance.sh')
         (self.setup / 'books-host').write_text('100.64.0.1\nbooks.fixture.ts.net\n')
         (self.setup / 'status.txt').write_text('Previous setup completed.\n')
         (self.wifi / 'carrier').write_text('1\n')
@@ -63,10 +64,14 @@ class KoboCommandTests(unittest.TestCase):
         (self.onboard / 'https-mode').write_text('reachable')
         self.executable(self.local / 'tailscale/bin/tailscale', '''
 printf '%s\\n' "$@" > /mnt/onboard/daemon-arguments
+printf '%s\\n' "$*" >> /mnt/onboard/daemon-calls
 case "$(cat /mnt/onboard/daemon-mode)" in
   unavailable) exit 1 ;;
   hung) exec sleep 30 ;;
 esac
+if [ "$1" = set ]; then
+  exit 0
+fi
 printf 'Tailscale daemon running.\\n'
 ''')
         self.executable(self.root / 'wget', '''
@@ -160,6 +165,39 @@ printf 'books 13394984 978000 12417024 8%% /mnt/onboard\\n'
         self.check_output(result, 'System free: 649.0 MiB')
         self.assertIn('Books free: 12126.0 MiB', result.stdout)
         self.assertEqual((self.setup / 'storage-check.txt').read_text(), result.stdout)
+
+    def test_enable_laptop_access_only_changes_ssh_and_incoming_connections(self):
+        self.check_output(self.run_menu('Enable laptop access'), 'Laptop access enabled over Tailscale.')
+        self.assertEqual((self.onboard / 'daemon-arguments').read_text().splitlines(),
+                         ['set', '--ssh=true', '--shields-up=false'])
+        self.assertEqual((self.setup / 'books-host').read_text(), '100.64.0.1\nbooks.fixture.ts.net\n')
+        self.assertFalse((self.onboard / 'https-arguments').exists())
+
+    def test_disable_laptop_access_blocks_incoming_connections(self):
+        self.check_output(self.run_menu('Disable laptop access'), 'Laptop access disabled.')
+        self.assertEqual((self.onboard / 'daemon-arguments').read_text().splitlines(),
+                         ['set', '--ssh=false', '--shields-up=true'])
+
+    def test_failed_enable_attempts_to_restore_blocked_incoming_connections(self):
+        (self.onboard / 'daemon-mode').write_text('unavailable')
+        result = self.run_menu('Enable laptop access')
+        self.check_output(result, 'Could not enable laptop access.')
+        self.assertNotIn('Laptop access enabled', result.stdout)
+        self.assertEqual((self.onboard / 'daemon-calls').read_text().splitlines(), [
+            'set --ssh=true --shields-up=false',
+            'set --ssh=false --shields-up=true',
+        ])
+
+    def test_hung_enable_and_rollback_finish_before_the_menu_deadline(self):
+        (self.onboard / 'daemon-mode').write_text('hung')
+        self.check_output(self.run_menu('Enable laptop access'), 'Could not enable laptop access.')
+        self.assertEqual(len((self.onboard / 'daemon-calls').read_text().splitlines()), 2)
+
+    def test_failed_disable_does_not_claim_access_is_blocked(self):
+        (self.onboard / 'daemon-mode').write_text('unavailable')
+        result = self.run_menu('Disable laptop access')
+        self.check_output(result, 'Incoming access may still be enabled.')
+        self.assertNotIn('Laptop access disabled.', result.stdout)
 
 
 if __name__ == '__main__':

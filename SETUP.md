@@ -85,14 +85,14 @@ reader. Preserve an existing reader identity when reinstalling.
 
 For a stock reader, stage the verified NickelMenu package as `.kobo/KoboRoot.tgz`,
 the pinned fork's Clara BW scripts and official ARM archive under
-`kobo-tailscale/clara-bw/`, and `integrations/kobo/bootstrap.sh` and `status.sh` under
+`kobo-tailscale/clara-bw/`, and the shell scripts from `integrations/kobo/` under
 `.adds/self-hosted-kobo/`. That directory also takes a temporary `auth.key` and a
 `books-host` file containing the gateway's Tailscale IPv4 address and full HTTPS
 hostname on separate lines. Keep these generated files outside Git.
 
 Copy `integrations/kobo/nickelmenu` into `.adds/nm/self-hosted-tailscale`.
-It provides **Set up Tailscale**, live **Tailscale status**, **Setup result**, and
-**Storage status**.
+It provides **Set up Tailscale**, live **Tailscale status**, **Setup result**,
+**Storage status**, and the laptop-access controls described in [Kobo operations](docs/kobo.md#direct-laptop-maintenance).
 Eject, unplug, wait for NickelMenu to install, enable Wi-Fi, then run setup. The
 bootstrap consumes the key into private system storage before authentication,
 deletes it on success and checks private Books HTTPS without bypassing certificate
@@ -110,13 +110,13 @@ On Linux, install `bubblewrap`, `shellcheck` and an `awk` implementation, then r
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with-requirements requirements.txt python -m unittest discover -s tests -v
-shellcheck integrations/kobo/bootstrap.sh integrations/kobo/status.sh
+shellcheck integrations/kobo/*.sh
 ```
 
 The Kobo tests enforce NickelMenu 0.6.0's timeout limits and execute the shipped
 menu commands and status helper in isolated namespaces with synthetic Wi-Fi,
 daemon and HTTPS responses. They cover missing setup results, stalled commands,
-live connectivity and storage output. They fail if bubblewrap is unavailable;
+live connectivity, storage output and laptop-access controls. They fail if bubblewrap is unavailable;
 they do not use a reader, credentials or network access.
 
 The test workflow runs the full suite on pushes and pull requests using a standard

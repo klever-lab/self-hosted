@@ -26,6 +26,6 @@ jobs:
           sudo apt-get install --yes bubblewrap shellcheck gawk
           python -m pip install -r requirements.txt
       - name: Check Kobo shell scripts
-        run: shellcheck integrations/kobo/bootstrap.sh integrations/kobo/status.sh
+        run: shellcheck integrations/kobo/*.sh
       - name: Run tests
         run: python -m unittest discover -s tests -v
