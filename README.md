@@ -9,6 +9,8 @@ Guaranine owns the Kubernetes platform. This repository owns the applications.
   per-user Kobo sync. The library is available only through Tailscale.
 - **Book importer:** completed downloads in qBittorrent's `books` category are uploaded
   to Calibre-Web every two minutes. The original files remain available for seeding.
+- **Gutenberg reading list:** a fixed selection of 200 English classics from
+  The Greatest Books ranking, imported on demand into the same library.
 
 Each application has its own namespace, storage, access policies, and deployment.
 Deployments use digest-pinned upstream images on existing workers.

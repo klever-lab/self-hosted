@@ -1,0 +1,2435 @@
+{
+  "source": "https://thegreatestbooks.org/",
+  "ranking_snapshot": "2026-11-16",
+  "catalog_source": "https://gutenberg.pglaf.org/cache/epub/feeds/pg_catalog.csv.gz",
+  "additional_catalog_sources": [
+    "https://gutenberg.pglaf.org/cache/epub/79990/pg79990.rdf"
+  ],
+  "selection": "Work down the all-time ranking, selecting 200 identifiable English Gutenberg editions. Use full novels rather than summaries, studies, indexes, or isolated volumes. Combine multipart editions into one EPUB. For general poetry/story collections, use the identified public-domain collection and record edition differences. Preserve Gutenberg licenses and source metadata. Rankings without an identified English edition are passed over.",
+  "books": [
+    {
+      "rank": 1,
+      "source_book": "https://thegreatestbooks.org/books/122",
+      "title": "Ulysses",
+      "author": "James Joyce",
+      "gutenberg_id": 4300,
+      "gutenberg_title": "Ulysses",
+      "file": "4300/pg4300-images-3.epub",
+      "size_bytes": 1494525
+    },
+    {
+      "rank": 3,
+      "source_book": "https://thegreatestbooks.org/books/38",
+      "title": "The Great Gatsby",
+      "author": "F. Scott Fitzgerald",
+      "gutenberg_id": 64317,
+      "gutenberg_title": "The Great Gatsby",
+      "file": "64317/pg64317-images-3.epub",
+      "size_bytes": 353457
+    },
+    {
+      "rank": 6,
+      "source_book": "https://thegreatestbooks.org/books/208",
+      "title": "Moby-Dick",
+      "author": "Herman Melville",
+      "gutenberg_id": 2701,
+      "gutenberg_title": "Moby Dick; Or, The Whale",
+      "file": "2701/pg2701-images-3.epub",
+      "size_bytes": 699716
+    },
+    {
+      "rank": 8,
+      "source_book": "https://thegreatestbooks.org/books/190",
+      "title": "Don Quixote",
+      "author": "Miguel de Cervantes",
+      "gutenberg_id": 996,
+      "gutenberg_title": "Don Quixote",
+      "file": "996/pg996-images-3.epub",
+      "size_bytes": 46093367
+    },
+    {
+      "rank": 9,
+      "source_book": "https://thegreatestbooks.org/books/85",
+      "title": "The Sound and the Fury",
+      "author": "William Faulkner",
+      "gutenberg_id": 75170,
+      "gutenberg_title": "The sound and the fury",
+      "file": "75170/pg75170-images-3.epub",
+      "size_bytes": 333169
+    },
+    {
+      "rank": 10,
+      "source_book": "https://thegreatestbooks.org/books/213",
+      "title": "Anna Karenina",
+      "author": "Leo Tolstoy",
+      "gutenberg_id": 1399,
+      "gutenberg_title": "Anna Karenina",
+      "file": "1399/pg1399-images-3.epub",
+      "size_bytes": 1029762
+    },
+    {
+      "rank": 12,
+      "source_book": "https://thegreatestbooks.org/books/116",
+      "title": "War and Peace",
+      "author": "Leo Tolstoy",
+      "gutenberg_id": 2600,
+      "gutenberg_title": "War and Peace",
+      "file": "2600/pg2600-images-3.epub",
+      "size_bytes": 1832425
+    },
+    {
+      "rank": 13,
+      "source_book": "https://thegreatestbooks.org/books/329",
+      "title": "Crime and Punishment",
+      "author": "Fyodor Dostoevsky",
+      "gutenberg_id": 2554,
+      "gutenberg_title": "Crime and Punishment",
+      "file": "2554/pg2554-images-3.epub",
+      "size_bytes": 784060
+    },
+    {
+      "rank": 14,
+      "source_book": "https://thegreatestbooks.org/books/108",
+      "title": "Wuthering Heights",
+      "author": "Emily Brontë",
+      "gutenberg_id": 768,
+      "gutenberg_title": "Wuthering Heights",
+      "file": "768/pg768-images-3.epub",
+      "size_bytes": 587952
+    },
+    {
+      "rank": 15,
+      "source_book": "https://thegreatestbooks.org/books/102",
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "gutenberg_id": 1342,
+      "gutenberg_title": "Pride and Prejudice",
+      "file": "1342/pg1342-images-3.epub",
+      "size_bytes": 24864480
+    },
+    {
+      "rank": 18,
+      "source_book": "https://thegreatestbooks.org/books/215",
+      "title": "The Brothers Karamazov",
+      "author": "Fyodor Dostoevsky",
+      "gutenberg_id": 28054,
+      "gutenberg_title": "The Brothers Karamazov",
+      "file": "28054/pg28054-images-3.epub",
+      "size_bytes": 1163374
+    },
+    {
+      "rank": 19,
+      "source_book": "https://thegreatestbooks.org/books/209",
+      "title": "Madame Bovary",
+      "author": "Gustave Flaubert",
+      "gutenberg_id": 2413,
+      "gutenberg_title": "Madame Bovary",
+      "file": "2413/pg2413-images-3.epub",
+      "size_bytes": 449121
+    },
+    {
+      "rank": 20,
+      "source_book": "https://thegreatestbooks.org/books/258",
+      "title": "The Trial",
+      "author": "Franz Kafka",
+      "gutenberg_id": 7849,
+      "gutenberg_title": "The Trial",
+      "file": "7849/pg7849-images-3.epub",
+      "size_bytes": 238359
+    },
+    {
+      "rank": 21,
+      "source_book": "https://thegreatestbooks.org/books/1156",
+      "title": "The Bible",
+      "author": "Unknown",
+      "gutenberg_id": 10,
+      "gutenberg_title": "The King James Version of the Bible",
+      "file": "10/pg10-images-3.epub",
+      "size_bytes": 1717117
+    },
+    {
+      "rank": 22,
+      "source_book": "https://thegreatestbooks.org/books/217",
+      "title": "Adventures of Huckleberry Finn",
+      "author": "Mark Twain",
+      "gutenberg_id": 76,
+      "gutenberg_title": "Adventures of Huckleberry Finn",
+      "file": "76/pg76-images-3.epub",
+      "size_bytes": 16021345
+    },
+    {
+      "rank": 24,
+      "source_book": "https://thegreatestbooks.org/books/410",
+      "title": "Middlemarch",
+      "author": "George Eliot",
+      "gutenberg_id": 145,
+      "gutenberg_title": "Middlemarch",
+      "file": "145/pg145-images-3.epub",
+      "size_bytes": 1072344
+    },
+    {
+      "rank": 26,
+      "source_book": "https://thegreatestbooks.org/books/408",
+      "title": "The Odyssey",
+      "author": "Homer",
+      "gutenberg_id": 1727,
+      "gutenberg_title": "The Odyssey / Rendered into English prose for the use of those who cannot read the original",
+      "file": "1727/pg1727-images-3.epub",
+      "size_bytes": 445994
+    },
+    {
+      "rank": 28,
+      "source_book": "https://thegreatestbooks.org/books/326",
+      "title": "The Divine Comedy",
+      "author": "Dante Alighieri",
+      "gutenberg_id": 8800,
+      "gutenberg_title": "The divine comedy",
+      "file": "8800/pg8800-images-3.epub",
+      "size_bytes": 30908718
+    },
+    {
+      "rank": 30,
+      "source_book": "https://thegreatestbooks.org/books/107",
+      "title": "Jane Eyre",
+      "author": "Charlotte Brontë",
+      "gutenberg_id": 1260,
+      "gutenberg_title": "Jane Eyre: An Autobiography",
+      "file": "1260/pg1260-images-3.epub",
+      "size_bytes": 3095830
+    },
+    {
+      "rank": 31,
+      "source_book": "https://thegreatestbooks.org/books/135",
+      "title": "Heart of Darkness",
+      "author": "Joseph Conrad",
+      "gutenberg_id": 219,
+      "gutenberg_title": "Heart of Darkness",
+      "file": "219/pg219-images-3.epub",
+      "size_bytes": 362125
+    },
+    {
+      "rank": 32,
+      "source_book": "https://thegreatestbooks.org/books/59",
+      "title": "Mrs. Dalloway",
+      "author": "Virginia Woolf",
+      "gutenberg_id": 71865,
+      "gutenberg_title": "Mrs. Dalloway",
+      "file": "71865/pg71865-images-3.epub",
+      "size_bytes": 411277
+    },
+    {
+      "rank": 36,
+      "source_book": "https://thegreatestbooks.org/books/211",
+      "title": "Alice's Adventures in Wonderland",
+      "author": "Lewis Carroll",
+      "gutenberg_id": 11,
+      "gutenberg_title": "Alice's Adventures in Wonderland",
+      "file": "11/pg11-images-3.epub",
+      "size_bytes": 189249
+    },
+    {
+      "rank": 37,
+      "source_book": "https://thegreatestbooks.org/books/407",
+      "title": "The Iliad",
+      "author": "Homer",
+      "gutenberg_id": 6130,
+      "gutenberg_title": "The Iliad",
+      "file": "6130/pg6130-images-3.epub",
+      "size_bytes": 2292050
+    },
+    {
+      "rank": 38,
+      "source_book": "https://thegreatestbooks.org/books/112",
+      "title": "Great Expectations",
+      "author": "Charles Dickens",
+      "gutenberg_id": 1400,
+      "gutenberg_title": "Great Expectations",
+      "file": "1400/pg1400-images-3.epub",
+      "size_bytes": 14385491
+    },
+    {
+      "rank": 39,
+      "source_book": "https://thegreatestbooks.org/books/199",
+      "title": "Frankenstein",
+      "author": "Mary Shelley",
+      "gutenberg_id": 84,
+      "gutenberg_title": "Frankenstein; or, The modern Prometheus",
+      "file": "84/pg84-images-3.epub",
+      "size_bytes": 440216
+    },
+    {
+      "rank": 40,
+      "source_book": "https://thegreatestbooks.org/books/950",
+      "title": "Les Misérables",
+      "author": "Victor Hugo",
+      "gutenberg_id": 135,
+      "gutenberg_title": "Les Misérables",
+      "file": "135/pg135-images-3.epub",
+      "size_bytes": 10130252
+    },
+    {
+      "rank": 43,
+      "source_book": "https://thegreatestbooks.org/books/485",
+      "title": "The Red and the Black",
+      "author": "Stendhal",
+      "gutenberg_id": 44747,
+      "gutenberg_title": "The Red and the Black: A Chronicle of 1830",
+      "file": "44747/pg44747-images-3.epub",
+      "size_bytes": 695005
+    },
+    {
+      "rank": 47,
+      "source_book": "https://thegreatestbooks.org/books/489",
+      "title": "One Thousand and One Nights",
+      "author": "Unknown",
+      "gutenberg_id": 3435,
+      "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 01 (of 10)",
+      "file": "3435/pg3435-images-3.epub",
+      "size_bytes": 513264,
+      "parts": [
+        {
+          "gutenberg_id": 3435,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 01 (of 10)",
+          "file": "3435/pg3435-images-3.epub",
+          "size_bytes": 513264
+        },
+        {
+          "gutenberg_id": 3436,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 02 (of 10)",
+          "file": "3436/pg3436-images-3.epub",
+          "size_bytes": 419051
+        },
+        {
+          "gutenberg_id": 3437,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 03 (of 10)",
+          "file": "3437/pg3437-images-3.epub",
+          "size_bytes": 437882
+        },
+        {
+          "gutenberg_id": 3438,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 04 (of 10)",
+          "file": "3438/pg3438-images-3.epub",
+          "size_bytes": 409107
+        },
+        {
+          "gutenberg_id": 3439,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 05 (of 10)",
+          "file": "3439/pg3439-images-3.epub",
+          "size_bytes": 525142
+        },
+        {
+          "gutenberg_id": 3440,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 06 (of 10)",
+          "file": "3440/pg3440-images-3.epub",
+          "size_bytes": 581121
+        },
+        {
+          "gutenberg_id": 3441,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 07 (of 10)",
+          "file": "3441/pg3441-images-3.epub",
+          "size_bytes": 606891
+        },
+        {
+          "gutenberg_id": 3442,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 08 (of 10)",
+          "file": "3442/pg3442-images-3.epub",
+          "size_bytes": 420096
+        },
+        {
+          "gutenberg_id": 3443,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 09 (of 10)",
+          "file": "3443/pg3443-images-3.epub",
+          "size_bytes": 453138
+        },
+        {
+          "gutenberg_id": 3444,
+          "gutenberg_title": "The Book of the Thousand Nights and a Night — Volume 10 (of 10)",
+          "file": "3444/pg3444-images-3.epub",
+          "size_bytes": 686093
+        }
+      ],
+      "edition_note": "The ten volumes of Richard F. Burton's translation, combined into one EPUB."
+    },
+    {
+      "rank": 48,
+      "source_book": "https://thegreatestbooks.org/books/205",
+      "title": "David Copperfield",
+      "author": "Charles Dickens",
+      "gutenberg_id": 766,
+      "gutenberg_title": "David Copperfield",
+      "file": "766/pg766-images-3.epub",
+      "size_bytes": 9414995
+    },
+    {
+      "rank": 54,
+      "source_book": "https://thegreatestbooks.org/books/16051",
+      "title": "The Life And Opinions Of Tristram Shandy",
+      "author": "Laurence Sterne",
+      "gutenberg_id": 1079,
+      "gutenberg_title": "The life and opinions of Tristram Shandy, gentleman",
+      "file": "1079/pg1079-images-3.epub",
+      "size_bytes": 1844395
+    },
+    {
+      "rank": 56,
+      "source_book": "https://thegreatestbooks.org/books/953",
+      "title": "Dracula",
+      "author": "Bram Stoker",
+      "gutenberg_id": 345,
+      "gutenberg_title": "Dracula",
+      "file": "345/pg345-images-3.epub",
+      "size_bytes": 602934
+    },
+    {
+      "rank": 57,
+      "source_book": "https://thegreatestbooks.org/books/88",
+      "title": "The Sun Also Rises",
+      "author": "Ernest Hemingway",
+      "gutenberg_id": 67138,
+      "gutenberg_title": "The Sun Also Rises",
+      "file": "67138/pg67138-images-3.epub",
+      "size_bytes": 330901
+    },
+    {
+      "rank": 59,
+      "source_book": "https://thegreatestbooks.org/books/442",
+      "title": "The Idiot",
+      "author": "Fyodor Dostoevsky",
+      "gutenberg_id": 2638,
+      "gutenberg_title": "The Idiot",
+      "file": "2638/pg2638-images-3.epub",
+      "size_bytes": 757543
+    },
+    {
+      "rank": 65,
+      "source_book": "https://thegreatestbooks.org/books/193",
+      "title": "Gulliver's Travels",
+      "author": "Jonathan Swift",
+      "gutenberg_id": 65473,
+      "gutenberg_title": "Gulliver's Travels",
+      "file": "65473/pg65473-images-3.epub",
+      "size_bytes": 1740969
+    },
+    {
+      "rank": 66,
+      "source_book": "https://thegreatestbooks.org/books/216",
+      "title": "The Portrait of a Lady",
+      "author": "Henry James",
+      "gutenberg_id": 2833,
+      "gutenberg_title": "The Portrait of a Lady — Volume 1",
+      "file": "2833/pg2833-images-3.epub",
+      "size_bytes": 346749,
+      "parts": [
+        {
+          "gutenberg_id": 2833,
+          "gutenberg_title": "The Portrait of a Lady — Volume 1",
+          "file": "2833/pg2833-images-3.epub",
+          "size_bytes": 346749
+        },
+        {
+          "gutenberg_id": 2834,
+          "gutenberg_title": "The Portrait of a Lady — Volume 2",
+          "file": "2834/pg2834-images-3.epub",
+          "size_bytes": 333124
+        }
+      ]
+    },
+    {
+      "rank": 68,
+      "source_book": "https://thegreatestbooks.org/books/207",
+      "title": "The Scarlet Letter",
+      "author": "Nathaniel Hawthorne",
+      "gutenberg_id": 33,
+      "gutenberg_title": "The Scarlet Letter",
+      "file": "33/pg33-images-3.epub",
+      "size_bytes": 455944
+    },
+    {
+      "rank": 69,
+      "source_book": "https://thegreatestbooks.org/books/192",
+      "title": "Robinson Crusoe",
+      "author": "Daniel Defoe",
+      "gutenberg_id": 70841,
+      "gutenberg_title": "Robinson Crusoe",
+      "file": "70841/pg70841-images-3.epub",
+      "size_bytes": 4956460
+    },
+    {
+      "rank": 71,
+      "source_book": "https://thegreatestbooks.org/books/134",
+      "title": "A Farewell to Arms",
+      "author": "Ernest Hemingway",
+      "gutenberg_id": 75201,
+      "gutenberg_title": "A farewell to arms",
+      "file": "75201/pg75201-images-3.epub",
+      "size_bytes": 214847
+    },
+    {
+      "rank": 73,
+      "source_book": "https://thegreatestbooks.org/books/491",
+      "title": "The Aeneid",
+      "author": "Virgil",
+      "gutenberg_id": 228,
+      "gutenberg_title": "The Aeneid",
+      "file": "228/pg228-images-3.epub",
+      "size_bytes": 343680
+    },
+    {
+      "rank": 74,
+      "source_book": "https://thegreatestbooks.org/books/481",
+      "title": "Hamlet",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1524,
+      "gutenberg_title": "Hamlet",
+      "file": "1524/pg1524-images-3.epub",
+      "size_bytes": 355047
+    },
+    {
+      "rank": 75,
+      "source_book": "https://thegreatestbooks.org/books/943",
+      "title": "Candide",
+      "author": "Voltaire",
+      "gutenberg_id": 19942,
+      "gutenberg_title": "Candide",
+      "file": "19942/pg19942-images-3.epub",
+      "size_bytes": 734888
+    },
+    {
+      "rank": 76,
+      "source_book": "https://thegreatestbooks.org/books/198",
+      "title": "Emma",
+      "author": "Jane Austen",
+      "gutenberg_id": 158,
+      "gutenberg_title": "Emma",
+      "file": "158/pg158-images-3.epub",
+      "size_bytes": 688534
+    },
+    {
+      "rank": 78,
+      "source_book": "https://thegreatestbooks.org/books/1170",
+      "title": "The Metamorphosis",
+      "author": "Franz Kafka",
+      "gutenberg_id": 5200,
+      "gutenberg_title": "Metamorphosis",
+      "file": "5200/pg5200-images-3.epub",
+      "size_bytes": 317251
+    },
+    {
+      "rank": 79,
+      "source_book": "https://thegreatestbooks.org/books/70",
+      "title": "A Passage to India",
+      "author": "E. M. Forster",
+      "gutenberg_id": 61221,
+      "gutenberg_title": "A passage to India",
+      "file": "61221/pg61221-images-3.epub",
+      "size_bytes": 404561
+    },
+    {
+      "rank": 80,
+      "source_book": "https://thegreatestbooks.org/books/467",
+      "title": "Essays",
+      "author": "Michel de Montaigne",
+      "gutenberg_id": 3600,
+      "gutenberg_title": "Essays of Michel de Montaigne — Complete",
+      "file": "3600/pg3600-images-3.epub",
+      "size_bytes": 1279008
+    },
+    {
+      "rank": 81,
+      "source_book": "https://thegreatestbooks.org/books/125",
+      "title": "A Portrait of the Artist as a Young Man",
+      "author": "James Joyce",
+      "gutenberg_id": 4217,
+      "gutenberg_title": "A Portrait of the Artist as a Young Man",
+      "file": "4217/pg4217-images-3.epub",
+      "size_bytes": 311379
+    },
+    {
+      "rank": 85,
+      "source_book": "https://thegreatestbooks.org/books/492",
+      "title": "Leaves of Grass",
+      "author": "Walt Whitman",
+      "gutenberg_id": 1322,
+      "gutenberg_title": "Leaves of Grass",
+      "file": "1322/pg1322-images-3.epub",
+      "size_bytes": 859766
+    },
+    {
+      "rank": 87,
+      "source_book": "https://thegreatestbooks.org/books/1351",
+      "title": "All Quiet on the Western Front",
+      "author": "Erich Maria Remarque",
+      "gutenberg_id": 75011,
+      "gutenberg_title": "All quiet on the Western Front",
+      "file": "75011/pg75011-images-3.epub",
+      "size_bytes": 396813
+    },
+    {
+      "rank": 88,
+      "source_book": "https://thegreatestbooks.org/books/465",
+      "title": "Buddenbrooks",
+      "author": "Thomas Mann",
+      "gutenberg_id": 72961,
+      "gutenberg_title": "Buddenbrooks, volume 1 of 2",
+      "file": "72961/pg72961-images-3.epub",
+      "size_bytes": 563241,
+      "parts": [
+        {
+          "gutenberg_id": 72961,
+          "gutenberg_title": "Buddenbrooks, volume 1 of 2",
+          "file": "72961/pg72961-images-3.epub",
+          "size_bytes": 563241
+        },
+        {
+          "gutenberg_id": 72962,
+          "gutenberg_title": "Buddenbrooks, volume 2 of 2",
+          "file": "72962/pg72962-images-3.epub",
+          "size_bytes": 512252
+        }
+      ]
+    },
+    {
+      "rank": 89,
+      "source_book": "https://thegreatestbooks.org/books/234",
+      "title": "The Good Soldier",
+      "author": "Ford Madox Ford",
+      "gutenberg_id": 2775,
+      "gutenberg_title": "The Good Soldier",
+      "file": "2775/pg2775-images-3.epub",
+      "size_bytes": 229404
+    },
+    {
+      "rank": 90,
+      "source_book": "https://thegreatestbooks.org/books/113",
+      "title": "Little Women",
+      "author": "Louisa May Alcott",
+      "gutenberg_id": 37106,
+      "gutenberg_title": "Little Women; Or, Meg, Jo, Beth, and Amy",
+      "file": "37106/pg37106-images-3.epub",
+      "size_bytes": 16915775
+    },
+    {
+      "rank": 91,
+      "source_book": "https://thegreatestbooks.org/books/111995",
+      "title": "The Picture of Dorian Gray",
+      "author": "Oscar Wilde",
+      "gutenberg_id": 174,
+      "gutenberg_title": "The Picture of Dorian Gray",
+      "file": "174/pg174-images-3.epub",
+      "size_bytes": 461385
+    },
+    {
+      "rank": 92,
+      "source_book": "https://thegreatestbooks.org/books/203",
+      "title": "The Count of Monte Cristo",
+      "author": "Alexandre Dumas",
+      "gutenberg_id": 1184,
+      "gutenberg_title": "The Count of Monte Cristo",
+      "file": "1184/pg1184-images-3.epub",
+      "size_bytes": 84580810
+    },
+    {
+      "rank": 93,
+      "source_book": "https://thegreatestbooks.org/books/443",
+      "title": "Demons",
+      "author": "Fyodor Dostoevsky",
+      "gutenberg_id": 8117,
+      "gutenberg_title": "The possessed",
+      "file": "8117/pg8117-images-3.epub",
+      "size_bytes": 841293
+    },
+    {
+      "rank": 95,
+      "source_book": "https://thegreatestbooks.org/books/146",
+      "title": "The Age of Innocence",
+      "author": "Edith Wharton",
+      "gutenberg_id": 541,
+      "gutenberg_title": "The Age of Innocence",
+      "file": "541/pg541-images-3.epub",
+      "size_bytes": 309351
+    },
+    {
+      "rank": 97,
+      "source_book": "https://thegreatestbooks.org/books/449",
+      "title": "Dead Souls",
+      "author": "Nikolai Gogol",
+      "gutenberg_id": 1081,
+      "gutenberg_title": "Dead Souls",
+      "file": "1081/pg1081-images-3.epub",
+      "size_bytes": 619232
+    },
+    {
+      "rank": 105,
+      "source_book": "https://thegreatestbooks.org/books/206",
+      "title": "Vanity Fair",
+      "author": "William Makepeace Thackeray",
+      "gutenberg_id": 599,
+      "gutenberg_title": "Vanity Fair",
+      "file": "599/pg599-images-3.epub",
+      "size_bytes": 844430
+    },
+    {
+      "rank": 106,
+      "source_book": "https://thegreatestbooks.org/books/2583",
+      "title": "Walden",
+      "author": "Henry David Thoreau",
+      "gutenberg_id": 205,
+      "gutenberg_title": "Walden, and On The Duty Of Civil Disobedience",
+      "file": "205/pg205-images-3.epub",
+      "size_bytes": 686085
+    },
+    {
+      "rank": 107,
+      "source_book": "https://thegreatestbooks.org/books/484",
+      "title": "Oedipus the King",
+      "author": "Sophocles",
+      "gutenberg_id": 27673,
+      "gutenberg_title": "Oedipus King of Thebes / Translated into English Rhyming Verse with Explanatory Notes",
+      "file": "27673/pg27673-images-3.epub",
+      "size_bytes": 312595
+    },
+    {
+      "rank": 108,
+      "source_book": "https://thegreatestbooks.org/books/324",
+      "title": "The Canterbury Tales",
+      "author": "Geoffrey Chaucer",
+      "gutenberg_id": 2383,
+      "gutenberg_title": "The Canterbury Tales, and Other Poems",
+      "file": "2383/pg2383-images-3.epub",
+      "size_bytes": 816829
+    },
+    {
+      "rank": 109,
+      "source_book": "https://thegreatestbooks.org/books/330",
+      "title": "Tess of the d'Urbervilles",
+      "author": "Thomas Hardy",
+      "gutenberg_id": 110,
+      "gutenberg_title": "Tess of the d'Urbervilles: A Pure Woman",
+      "file": "110/pg110-images-3.epub",
+      "size_bytes": 504070
+    },
+    {
+      "rank": 110,
+      "source_book": "https://thegreatestbooks.org/books/474",
+      "title": "The Complete Tales and Poems of Edgar Allan Poe",
+      "author": "Edgar Allan Poe",
+      "gutenberg_id": 2147,
+      "gutenberg_title": "The Works of Edgar Allan Poe — Volume 1",
+      "file": "2147/pg2147-images-3.epub",
+      "size_bytes": 363850,
+      "parts": [
+        {
+          "gutenberg_id": 2147,
+          "gutenberg_title": "The Works of Edgar Allan Poe — Volume 1",
+          "file": "2147/pg2147-images-3.epub",
+          "size_bytes": 363850
+        },
+        {
+          "gutenberg_id": 2148,
+          "gutenberg_title": "The Works of Edgar Allan Poe — Volume 2",
+          "file": "2148/pg2148-images-3.epub",
+          "size_bytes": 398298
+        },
+        {
+          "gutenberg_id": 2149,
+          "gutenberg_title": "The Works of Edgar Allan Poe — Volume 3",
+          "file": "2149/pg2149-images-3.epub",
+          "size_bytes": 411579
+        },
+        {
+          "gutenberg_id": 2150,
+          "gutenberg_title": "The Works of Edgar Allan Poe — Volume 4",
+          "file": "2150/pg2150-images-3.epub",
+          "size_bytes": 381171
+        },
+        {
+          "gutenberg_id": 2151,
+          "gutenberg_title": "The Works of Edgar Allan Poe — Volume 5",
+          "file": "2151/pg2151-images-3.epub",
+          "size_bytes": 381331
+        }
+      ],
+      "edition_note": "The five-volume Raven edition of Poe's works, combined into one EPUB."
+    },
+    {
+      "rank": 115,
+      "source_book": "https://thegreatestbooks.org/books/416",
+      "title": "Paradise Lost",
+      "author": "John Milton",
+      "gutenberg_id": 20,
+      "gutenberg_title": "Paradise Lost",
+      "file": "20/pg20-images-3.epub",
+      "size_bytes": 399093
+    },
+    {
+      "rank": 116,
+      "source_book": "https://thegreatestbooks.org/books/1980",
+      "title": "First Folio",
+      "author": "William Shakespeare",
+      "gutenberg_id": 2270,
+      "gutenberg_title": "Shakespeare's First Folio",
+      "file": "2270/pg2270-images-3.epub",
+      "size_bytes": 2281221
+    },
+    {
+      "rank": 118,
+      "source_book": "https://thegreatestbooks.org/books/905",
+      "title": "Confessions",
+      "author": "Augustine",
+      "gutenberg_id": 3296,
+      "gutenberg_title": "The Confessions of St. Augustine",
+      "file": "3296/pg3296-images-3.epub",
+      "size_bytes": 458088
+    },
+    {
+      "rank": 119,
+      "source_book": "https://thegreatestbooks.org/books/194",
+      "title": "Tom Jones",
+      "author": "Henry Fielding",
+      "gutenberg_id": 6593,
+      "gutenberg_title": "History of Tom Jones, a Foundling",
+      "file": "6593/pg6593-images-3.epub",
+      "size_bytes": 1062094
+    },
+    {
+      "rank": 121,
+      "source_book": "https://thegreatestbooks.org/books/336",
+      "title": "Treasure Island",
+      "author": "Robert Louis Stevenson",
+      "gutenberg_id": 120,
+      "gutenberg_title": "Treasure Island",
+      "file": "120/pg120-images-3.epub",
+      "size_bytes": 49452703
+    },
+    {
+      "rank": 122,
+      "source_book": "https://thegreatestbooks.org/books/445",
+      "title": "A Sentimental Education",
+      "author": "Gustave Flaubert",
+      "gutenberg_id": 34828,
+      "gutenberg_title": "Sentimental Education; Or, The History of a Young Man. Volume 1",
+      "file": "34828/pg34828-images-3.epub",
+      "size_bytes": 1508471,
+      "parts": [
+        {
+          "gutenberg_id": 34828,
+          "gutenberg_title": "Sentimental Education; Or, The History of a Young Man. Volume 1",
+          "file": "34828/pg34828-images-3.epub",
+          "size_bytes": 1508471
+        },
+        {
+          "gutenberg_id": 27537,
+          "gutenberg_title": "Sentimental Education; Or, The History of a Young Man. Volume 2",
+          "file": "27537/pg27537-images-3.epub",
+          "size_bytes": 800861
+        }
+      ]
+    },
+    {
+      "rank": 123,
+      "source_book": "https://thegreatestbooks.org/books/320",
+      "title": "Decameron",
+      "author": "Giovanni Boccaccio",
+      "gutenberg_id": 23700,
+      "gutenberg_title": "The Decameron of Giovanni Boccaccio",
+      "file": "23700/pg23700-images-3.epub",
+      "size_bytes": 734835
+    },
+    {
+      "rank": 124,
+      "source_book": "https://thegreatestbooks.org/books/111",
+      "title": "The Wind in the Willows",
+      "author": "Kenneth Grahame",
+      "gutenberg_id": 289,
+      "gutenberg_title": "The Wind in the Willows",
+      "file": "289/pg289-images-3.epub",
+      "size_bytes": 371406
+    },
+    {
+      "rank": 129,
+      "source_book": "https://thegreatestbooks.org/books/475",
+      "title": "Gargantua and Pantagruel",
+      "author": "Francois Rabelais",
+      "gutenberg_id": 1200,
+      "gutenberg_title": "Gargantua and Pantagruel",
+      "file": "1200/pg1200-images-3.epub",
+      "size_bytes": 8407864
+    },
+    {
+      "rank": 131,
+      "source_book": "https://thegreatestbooks.org/books/562",
+      "title": "Bleak House",
+      "author": "Charles Dickens",
+      "gutenberg_id": 1023,
+      "gutenberg_title": "Bleak House",
+      "file": "1023/pg1023-images-3.epub",
+      "size_bytes": 969831
+    },
+    {
+      "rank": 132,
+      "source_book": "https://thegreatestbooks.org/books/168",
+      "title": "Sons and Lovers",
+      "author": "D. H. Lawrence",
+      "gutenberg_id": 217,
+      "gutenberg_title": "Sons and Lovers",
+      "file": "217/pg217-images-3.epub",
+      "size_bytes": 502505
+    },
+    {
+      "rank": 134,
+      "source_book": "https://thegreatestbooks.org/books/487",
+      "title": "Confessions of Zeno",
+      "author": "Italo Svevo",
+      "gutenberg_id": 79453,
+      "gutenberg_title": "Confessions of Zeno",
+      "file": "79453/pg79453-images-3.epub",
+      "size_bytes": 645428
+    },
+    {
+      "rank": 137,
+      "source_book": "https://thegreatestbooks.org/books/202",
+      "title": "The Charterhouse of Parma",
+      "author": "Stendhal",
+      "gutenberg_id": 57638,
+      "gutenberg_title": "The Chartreuse of Parma / Translated from the French of Stendhal (Henri Beyle)",
+      "file": "57638/pg57638-images-3.epub",
+      "size_bytes": 588412
+    },
+    {
+      "rank": 138,
+      "source_book": "https://thegreatestbooks.org/books/954",
+      "title": "The Three Musketeers",
+      "author": "Alexandre Dumas",
+      "gutenberg_id": 1257,
+      "gutenberg_title": "The three musketeers",
+      "file": "1257/pg1257-images-3.epub",
+      "size_bytes": 841983
+    },
+    {
+      "rank": 140,
+      "source_book": "https://thegreatestbooks.org/books/884",
+      "title": "The Prince",
+      "author": "Niccolo Machiavelli",
+      "gutenberg_id": 1232,
+      "gutenberg_title": "The Prince",
+      "file": "1232/pg1232-images-3.epub",
+      "size_bytes": 368446
+    },
+    {
+      "rank": 141,
+      "source_book": "https://thegreatestbooks.org/books/3041",
+      "title": "The Waste Land",
+      "author": "T. S. Eliot",
+      "gutenberg_id": 1321,
+      "gutenberg_title": "The Waste Land",
+      "file": "1321/pg1321-images-3.epub",
+      "size_bytes": 83807
+    },
+    {
+      "rank": 142,
+      "source_book": "https://thegreatestbooks.org/books/601",
+      "title": "Antigone",
+      "author": "Sophocles",
+      "gutenberg_id": 31,
+      "gutenberg_title": "Plays of Sophocles: Oedipus the King; Oedipus at Colonus; Antigone",
+      "file": "31/pg31-images-3.epub",
+      "size_bytes": 357039,
+      "edition_note": "Gutenberg's Sophocles collection also includes Oedipus the King and Oedipus at Colonus."
+    },
+    {
+      "rank": 143,
+      "source_book": "https://thegreatestbooks.org/books/177",
+      "title": "The Maltese Falcon",
+      "author": "Dashiell Hammett",
+      "gutenberg_id": 77600,
+      "gutenberg_title": "The Maltese falcon",
+      "file": "77600/pg77600-images-3.epub",
+      "size_bytes": 275586
+    },
+    {
+      "rank": 146,
+      "source_book": "https://thegreatestbooks.org/books/482",
+      "title": "King Lear",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1532,
+      "gutenberg_title": "King Lear",
+      "file": "1532/pg1532-images-3.epub",
+      "size_bytes": 345207
+    },
+    {
+      "rank": 147,
+      "source_book": "https://thegreatestbooks.org/books/210",
+      "title": "The Woman in White",
+      "author": "Wilkie Collins",
+      "gutenberg_id": 583,
+      "gutenberg_title": "The Woman in White",
+      "file": "583/pg583-images-3.epub",
+      "size_bytes": 692397
+    },
+    {
+      "rank": 150,
+      "source_book": "https://thegreatestbooks.org/books/181",
+      "title": "Lord Jim",
+      "author": "Joseph Conrad",
+      "gutenberg_id": 5658,
+      "gutenberg_title": "Lord Jim",
+      "file": "5658/pg5658-images-3.epub",
+      "size_bytes": 368353
+    },
+    {
+      "rank": 151,
+      "source_book": "https://thegreatestbooks.org/books/155",
+      "title": "My Antonia",
+      "author": "Willa Cather",
+      "gutenberg_id": 19810,
+      "gutenberg_title": "My Ántonia",
+      "file": "19810/pg19810-images-3.epub",
+      "size_bytes": 645677
+    },
+    {
+      "rank": 161,
+      "source_book": "https://thegreatestbooks.org/books/2462",
+      "title": "Siddhartha",
+      "author": "Hermann Hesse",
+      "gutenberg_id": 2500,
+      "gutenberg_title": "Siddhartha",
+      "file": "2500/pg2500-images-3.epub",
+      "size_bytes": 269622
+    },
+    {
+      "rank": 162,
+      "source_book": "https://thegreatestbooks.org/books/1328",
+      "title": "Steppenwolf",
+      "author": "Hermann Hesse",
+      "gutenberg_id": 75756,
+      "gutenberg_title": "Steppenwolf",
+      "file": "75756/pg75756-images-3.epub",
+      "size_bytes": 409969
+    },
+    {
+      "rank": 164,
+      "source_book": "https://thegreatestbooks.org/books/2560",
+      "title": "Poems of Emily Dickinson",
+      "author": "Emily Dickinson",
+      "gutenberg_id": 12242,
+      "gutenberg_title": "Poems by Emily Dickinson, Three Series, Complete",
+      "file": "12242/pg12242-images-3.epub",
+      "size_bytes": 500172,
+      "edition_note": "The public-domain Three Series, Complete edition."
+    },
+    {
+      "rank": 165,
+      "source_book": "https://thegreatestbooks.org/books/955",
+      "title": "The Hound of the Baskervilles",
+      "author": "Arthur Conan Doyle",
+      "gutenberg_id": 2852,
+      "gutenberg_title": "The Hound of the Baskervilles",
+      "file": "2852/pg2852-images-3.epub",
+      "size_bytes": 316981
+    },
+    {
+      "rank": 166,
+      "source_book": "https://thegreatestbooks.org/books/1598",
+      "title": "Macbeth",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1533,
+      "gutenberg_title": "Macbeth",
+      "file": "1533/pg1533-images-3.epub",
+      "size_bytes": 324491
+    },
+    {
+      "rank": 173,
+      "source_book": "https://thegreatestbooks.org/books/949",
+      "title": "Uncle Tom's Cabin",
+      "author": "Harriet Beecher Stowe",
+      "gutenberg_id": 203,
+      "gutenberg_title": "Uncle Tom's Cabin",
+      "file": "203/pg203-images-3.epub",
+      "size_bytes": 1447227
+    },
+    {
+      "rank": 175,
+      "source_book": "https://thegreatestbooks.org/books/931",
+      "title": "Fathers and Sons",
+      "author": "Ivan Turgenev",
+      "gutenberg_id": 47935,
+      "gutenberg_title": "Fathers and Sons",
+      "file": "47935/pg47935-images-3.epub",
+      "size_bytes": 376627
+    },
+    {
+      "rank": 177,
+      "source_book": "https://thegreatestbooks.org/books/944",
+      "title": "Oblomov",
+      "author": "Ivan Goncharov",
+      "gutenberg_id": 54700,
+      "gutenberg_title": "Oblomov",
+      "file": "54700/pg54700-images-3.epub",
+      "size_bytes": 409386
+    },
+    {
+      "rank": 179,
+      "source_book": "https://thegreatestbooks.org/books/338",
+      "title": "Persuasion",
+      "author": "Jane Austen",
+      "gutenberg_id": 105,
+      "gutenberg_title": "Persuasion",
+      "file": "105/pg105-images-3.epub",
+      "size_bytes": 466265
+    },
+    {
+      "rank": 181,
+      "source_book": "https://thegreatestbooks.org/books/101",
+      "title": "An American Tragedy",
+      "author": "Theodore Dreiser",
+      "gutenberg_id": 75181,
+      "gutenberg_title": "An American tragedy, v. 1",
+      "file": "75181/pg75181-images-3.epub",
+      "size_bytes": 720468,
+      "parts": [
+        {
+          "gutenberg_id": 75181,
+          "gutenberg_title": "An American tragedy, v. 1",
+          "file": "75181/pg75181-images-3.epub",
+          "size_bytes": 720468
+        },
+        {
+          "gutenberg_id": 75182,
+          "gutenberg_title": "An American tragedy, v. 2",
+          "file": "75182/pg75182-images-3.epub",
+          "size_bytes": 684725
+        }
+      ]
+    },
+    {
+      "rank": 183,
+      "source_book": "https://thegreatestbooks.org/books/152",
+      "title": "Lady Chatterley's Lover",
+      "author": "D. H. Lawrence",
+      "gutenberg_id": 73144,
+      "gutenberg_title": "Lady Chatterley's lover",
+      "file": "73144/pg73144-images-3.epub",
+      "size_bytes": 415305
+    },
+    {
+      "rank": 185,
+      "source_book": "https://thegreatestbooks.org/books/156",
+      "title": "Howards End",
+      "author": "E. M. Forster",
+      "gutenberg_id": 2891,
+      "gutenberg_title": "Howards End",
+      "file": "2891/pg2891-images-3.epub",
+      "size_bytes": 373728
+    },
+    {
+      "rank": 186,
+      "source_book": "https://thegreatestbooks.org/books/106",
+      "title": "Winnie the Pooh",
+      "author": "A. A. Milne",
+      "gutenberg_id": 67098,
+      "gutenberg_title": "Winnie-the-Pooh",
+      "file": "67098/pg67098-images-3.epub",
+      "size_bytes": 5035833
+    },
+    {
+      "rank": 190,
+      "source_book": "https://thegreatestbooks.org/books/550",
+      "title": "A Tale of Two Cities",
+      "author": "Charles Dickens",
+      "gutenberg_id": 98,
+      "gutenberg_title": "A Tale of Two Cities",
+      "file": "98/pg98-images-3.epub",
+      "size_bytes": 7922995
+    },
+    {
+      "rank": 192,
+      "source_book": "https://thegreatestbooks.org/books/886",
+      "title": "On the Origin of Species",
+      "author": "Charles Darwin",
+      "gutenberg_id": 1228,
+      "gutenberg_title": "On the Origin of Species By Means of Natural Selection / Or, the Preservation of Favoured Races in the Struggle for Life",
+      "file": "1228/pg1228-images-3.epub",
+      "size_bytes": 610265
+    },
+    {
+      "rank": 193,
+      "source_book": "https://thegreatestbooks.org/books/829",
+      "title": "The Interpretation of Dreams",
+      "author": "Sigmund Freud",
+      "gutenberg_id": 66048,
+      "gutenberg_title": "The Interpretation of Dreams",
+      "file": "66048/pg66048-images-3.epub",
+      "size_bytes": 897324
+    },
+    {
+      "rank": 194,
+      "source_book": "https://thegreatestbooks.org/books/472",
+      "title": "Metamorphoses",
+      "author": "Ovid",
+      "gutenberg_id": 28621,
+      "gutenberg_title": "The Metamorphoses of Publius Ovidus Naso in English blank verse Vols. I & II",
+      "file": "28621/pg28621-images-3.epub",
+      "size_bytes": 554328
+    },
+    {
+      "rank": 195,
+      "source_book": "https://thegreatestbooks.org/books/2395",
+      "title": "The Flowers of Evil",
+      "author": "Charles Baudelaire",
+      "gutenberg_id": 36098,
+      "gutenberg_title": "The Flowers of Evil",
+      "file": "36098/pg36098-images-3.epub",
+      "size_bytes": 94152
+    },
+    {
+      "rank": 198,
+      "source_book": "https://thegreatestbooks.org/books/149",
+      "title": "The Jungle",
+      "author": "Upton Sinclair",
+      "gutenberg_id": 140,
+      "gutenberg_title": "The Jungle",
+      "file": "140/pg140-images-3.epub",
+      "size_bytes": 615474
+    },
+    {
+      "rank": 200,
+      "source_book": "https://thegreatestbooks.org/books/197",
+      "title": "Dangerous Liaison",
+      "author": "Pierre Choderlos de Laclos",
+      "gutenberg_id": 45512,
+      "gutenberg_title": "Dangerous Connections, v. 1, 2, 3, 4 / A Series of Letters, selected from the Correspondence of a Private Circle; and Published for the Instruction of Society.",
+      "file": "45512/pg45512-images-3.epub",
+      "size_bytes": 577585
+    },
+    {
+      "rank": 202,
+      "source_book": "https://thegreatestbooks.org/books/936",
+      "title": "The Counterfeiters",
+      "author": "André Gide",
+      "gutenberg_id": 76965,
+      "gutenberg_title": "The counterfeiters",
+      "file": "76965/pg76965-images-3.epub",
+      "size_bytes": 658944
+    },
+    {
+      "rank": 207,
+      "source_book": "https://thegreatestbooks.org/books/2803",
+      "title": "The Turn of the Screw",
+      "author": "Henry James",
+      "gutenberg_id": 209,
+      "gutenberg_title": "The Turn of the Screw",
+      "file": "209/pg209-images-3.epub",
+      "size_bytes": 387516
+    },
+    {
+      "rank": 208,
+      "source_book": "https://thegreatestbooks.org/books/244",
+      "title": "The House of Mirth",
+      "author": "Edith Wharton",
+      "gutenberg_id": 284,
+      "gutenberg_title": "The House of Mirth",
+      "file": "284/pg284-images-3.epub",
+      "size_bytes": 569714
+    },
+    {
+      "rank": 209,
+      "source_book": "https://thegreatestbooks.org/books/435",
+      "title": "The Complete Sherlock Holmes",
+      "author": "Arthur Conan Doyle",
+      "gutenberg_id": 1661,
+      "gutenberg_title": "The Adventures of Sherlock Holmes",
+      "file": "1661/pg1661-images-3.epub",
+      "size_bytes": 379503,
+      "parts": [
+        {
+          "gutenberg_id": 1661,
+          "gutenberg_title": "The Adventures of Sherlock Holmes",
+          "file": "1661/pg1661-images-3.epub",
+          "size_bytes": 379503
+        },
+        {
+          "gutenberg_id": 244,
+          "gutenberg_title": "A Study in Scarlet",
+          "file": "244/pg244-images-3.epub",
+          "size_bytes": 385342
+        },
+        {
+          "gutenberg_id": 2097,
+          "gutenberg_title": "The Sign of the Four",
+          "file": "2097/pg2097-images-3.epub",
+          "size_bytes": 365143
+        },
+        {
+          "gutenberg_id": 834,
+          "gutenberg_title": "The Memoirs of Sherlock Holmes",
+          "file": "834/pg834-images-3.epub",
+          "size_bytes": 776687
+        },
+        {
+          "gutenberg_id": 2852,
+          "gutenberg_title": "The Hound of the Baskervilles",
+          "file": "2852/pg2852-images-3.epub",
+          "size_bytes": 316981
+        },
+        {
+          "gutenberg_id": 108,
+          "gutenberg_title": "The Return of Sherlock Holmes",
+          "file": "108/pg108-images-3.epub",
+          "size_bytes": 683296
+        },
+        {
+          "gutenberg_id": 3289,
+          "gutenberg_title": "The Valley of Fear",
+          "file": "3289/pg3289-images-3.epub",
+          "size_bytes": 2037110
+        },
+        {
+          "gutenberg_id": 2350,
+          "gutenberg_title": "His last bow",
+          "file": "2350/pg2350-images-3.epub",
+          "size_bytes": 357124
+        },
+        {
+          "gutenberg_id": 69700,
+          "gutenberg_title": "The case-book of Sherlock Holmes",
+          "file": "69700/pg69700-images-3.epub",
+          "size_bytes": 204751
+        }
+      ],
+      "edition_note": "All nine original Sherlock Holmes books, combined into one EPUB."
+    },
+    {
+      "rank": 214,
+      "source_book": "https://thegreatestbooks.org/books/451",
+      "title": "Hunger",
+      "author": "Knut Hamsun",
+      "gutenberg_id": 8387,
+      "gutenberg_title": "Hunger",
+      "file": "8387/pg8387-images-3.epub",
+      "size_bytes": 213049
+    },
+    {
+      "rank": 218,
+      "source_book": "https://thegreatestbooks.org/books/913",
+      "title": "Father Goriot",
+      "author": "Honoré de Balzac",
+      "gutenberg_id": 1237,
+      "gutenberg_title": "Father Goriot",
+      "file": "1237/pg1237-images-3.epub",
+      "size_bytes": 303503
+    },
+    {
+      "rank": 219,
+      "source_book": "https://thegreatestbooks.org/books/882",
+      "title": "Democracy in America",
+      "author": "Alexis de Tocqueville",
+      "gutenberg_id": 815,
+      "gutenberg_title": "Democracy in America — Volume 1",
+      "file": "815/pg815-images-3.epub",
+      "size_bytes": 542330,
+      "parts": [
+        {
+          "gutenberg_id": 815,
+          "gutenberg_title": "Democracy in America — Volume 1",
+          "file": "815/pg815-images-3.epub",
+          "size_bytes": 542330
+        },
+        {
+          "gutenberg_id": 816,
+          "gutenberg_title": "Democracy in America — Volume 2",
+          "file": "816/pg816-images-3.epub",
+          "size_bytes": 411782
+        }
+      ]
+    },
+    {
+      "rank": 220,
+      "source_book": "https://thegreatestbooks.org/books/1595",
+      "title": "The Tempest",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1540,
+      "gutenberg_title": "The Tempest",
+      "file": "1540/pg1540-images-3.epub",
+      "size_bytes": 322628
+    },
+    {
+      "rank": 221,
+      "source_book": "https://thegreatestbooks.org/books/173",
+      "title": "Women in Love",
+      "author": "D. H. Lawrence",
+      "gutenberg_id": 4240,
+      "gutenberg_title": "Women in Love",
+      "file": "4240/pg4240-images-3.epub",
+      "size_bytes": 511873
+    },
+    {
+      "rank": 226,
+      "source_book": "https://thegreatestbooks.org/books/539",
+      "title": "A Christmas Carol",
+      "author": "Charles Dickens",
+      "gutenberg_id": 46,
+      "gutenberg_title": "A Christmas Carol in Prose; Being a Ghost Story of Christmas",
+      "file": "46/pg46-images-3.epub",
+      "size_bytes": 641217
+    },
+    {
+      "rank": 227,
+      "source_book": "https://thegreatestbooks.org/books/232",
+      "title": "The Ambassadors",
+      "author": "Henry James",
+      "gutenberg_id": 432,
+      "gutenberg_title": "The Ambassadors",
+      "file": "432/pg432-images-3.epub",
+      "size_bytes": 602213
+    },
+    {
+      "rank": 228,
+      "source_book": "https://thegreatestbooks.org/books/141",
+      "title": "The Call of the Wild",
+      "author": "Jack London",
+      "gutenberg_id": 215,
+      "gutenberg_title": "The call of the wild",
+      "file": "215/pg215-images-3.epub",
+      "size_bytes": 228508
+    },
+    {
+      "rank": 229,
+      "source_book": "https://thegreatestbooks.org/books/218",
+      "title": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+      "author": "Robert Louis Stevenson",
+      "gutenberg_id": 42,
+      "gutenberg_title": "The strange case of Dr. Jekyll and Mr. Hyde",
+      "file": "42/pg42-images-3.epub",
+      "size_bytes": 292886
+    },
+    {
+      "rank": 230,
+      "source_book": "https://thegreatestbooks.org/books/1067",
+      "title": "The Republic",
+      "author": "Plato",
+      "gutenberg_id": 1497,
+      "gutenberg_title": "The Republic",
+      "file": "1497/pg1497-images-3.epub",
+      "size_bytes": 619155
+    },
+    {
+      "rank": 232,
+      "source_book": "https://thegreatestbooks.org/books/1171",
+      "title": "Death in Venice",
+      "author": "Thomas Mann",
+      "gutenberg_id": 66073,
+      "gutenberg_title": "Death in Venice",
+      "file": "66073/pg66073-images-3.epub",
+      "size_bytes": 138049
+    },
+    {
+      "rank": 235,
+      "source_book": "https://thegreatestbooks.org/books/2573",
+      "title": "The Forsyte Saga",
+      "author": "John Galsworthy",
+      "gutenberg_id": 4397,
+      "gutenberg_title": "The Forsyte saga - Complete",
+      "file": "4397/pg4397-images-3.epub",
+      "size_bytes": 1751402
+    },
+    {
+      "rank": 237,
+      "source_book": "https://thegreatestbooks.org/books/318",
+      "title": "Fairy Tales and Stories",
+      "author": "Hans Christian Andersen",
+      "gutenberg_id": 27200,
+      "gutenberg_title": "Fairy Tales of Hans Christian Andersen",
+      "file": "27200/pg27200-images-3.epub",
+      "size_bytes": 873664
+    },
+    {
+      "rank": 238,
+      "source_book": "https://thegreatestbooks.org/books/2644",
+      "title": "A Hero of Our Time",
+      "author": "Mikhail Lermontov",
+      "gutenberg_id": 913,
+      "gutenberg_title": "A Hero of Our Time",
+      "file": "913/pg913-images-3.epub",
+      "size_bytes": 217511
+    },
+    {
+      "rank": 239,
+      "source_book": "https://thegreatestbooks.org/books/1491",
+      "title": "Thus Spake Zarathustra",
+      "author": "Friedrich Nietzsche",
+      "gutenberg_id": 1998,
+      "gutenberg_title": "Thus Spake Zarathustra: A Book for All and None",
+      "file": "1998/pg1998-images-3.epub",
+      "size_bytes": 671423
+    },
+    {
+      "rank": 240,
+      "source_book": "https://thegreatestbooks.org/books/2298",
+      "title": "The Murder of Roger Ackroyd",
+      "author": "Agatha Christie",
+      "gutenberg_id": 69087,
+      "gutenberg_title": "The murder of Roger Ackroyd",
+      "file": "69087/pg69087-images-3.epub",
+      "size_bytes": 875457
+    },
+    {
+      "rank": 242,
+      "source_book": "https://thegreatestbooks.org/books/537",
+      "title": "Anne of Green Gables",
+      "author": "L. M. Montgomery",
+      "gutenberg_id": 45,
+      "gutenberg_title": "Anne of Green Gables",
+      "file": "45/pg45-images-3.epub",
+      "size_bytes": 549516
+    },
+    {
+      "rank": 249,
+      "source_book": "https://thegreatestbooks.org/books/3411",
+      "title": "The Private Memoirs and Confessions of a Justified Sinner",
+      "author": "James Hogg",
+      "gutenberg_id": 2276,
+      "gutenberg_title": "The Private Memoirs and Confessions of a Justified Sinner",
+      "file": "2276/pg2276-images-3.epub",
+      "size_bytes": 276130
+    },
+    {
+      "rank": 250,
+      "source_book": "https://thegreatestbooks.org/books/185",
+      "title": "Babbitt",
+      "author": "Sinclair Lewis",
+      "gutenberg_id": 1156,
+      "gutenberg_title": "Babbitt",
+      "file": "1156/pg1156-images-3.epub",
+      "size_bytes": 601914
+    },
+    {
+      "rank": 251,
+      "source_book": "https://thegreatestbooks.org/books/2826",
+      "title": "The Adventures of Tom Sawyer",
+      "author": "Mark Twain",
+      "gutenberg_id": 74,
+      "gutenberg_title": "The Adventures of Tom Sawyer, Complete",
+      "file": "74/pg74-images-3.epub",
+      "size_bytes": 16672845
+    },
+    {
+      "rank": 255,
+      "source_book": "https://thegreatestbooks.org/books/172",
+      "title": "Wings of the Dove",
+      "author": "Henry James",
+      "gutenberg_id": 29452,
+      "gutenberg_title": "The Wings of the Dove, Volume 1 of 2",
+      "file": "29452/pg29452-images-3.epub",
+      "size_bytes": 260950,
+      "parts": [
+        {
+          "gutenberg_id": 29452,
+          "gutenberg_title": "The Wings of the Dove, Volume 1 of 2",
+          "file": "29452/pg29452-images-3.epub",
+          "size_bytes": 260950
+        },
+        {
+          "gutenberg_id": 30059,
+          "gutenberg_title": "The Wings of the Dove, Volume II",
+          "file": "30059/pg30059-images-3.epub",
+          "size_bytes": 312122
+        }
+      ]
+    },
+    {
+      "rank": 257,
+      "source_book": "https://thegreatestbooks.org/books/186",
+      "title": "Kim",
+      "author": "Rudyard Kipling",
+      "gutenberg_id": 2226,
+      "gutenberg_title": "Kim",
+      "file": "2226/pg2226-images-3.epub",
+      "size_bytes": 535921
+    },
+    {
+      "rank": 265,
+      "source_book": "https://thegreatestbooks.org/books/947",
+      "title": "The Betrothed",
+      "author": "Alessandro Manzoni",
+      "gutenberg_id": 35155,
+      "gutenberg_title": "The Betrothed / From the Italian of Alessandro Manzoni",
+      "file": "35155/pg35155-images-3.epub",
+      "size_bytes": 487954
+    },
+    {
+      "rank": 267,
+      "source_book": "https://thegreatestbooks.org/books/153",
+      "title": "The Awakening",
+      "author": "Kate Chopin",
+      "gutenberg_id": 160,
+      "gutenberg_title": "The Awakening, and Selected Short Stories",
+      "file": "160/pg160-images-3.epub",
+      "size_bytes": 238595
+    },
+    {
+      "rank": 268,
+      "source_book": "https://thegreatestbooks.org/books/941",
+      "title": "The Pickwick Papers",
+      "author": "Charles Dickens",
+      "gutenberg_id": 580,
+      "gutenberg_title": "The Pickwick Papers",
+      "file": "580/pg580-images-3.epub",
+      "size_bytes": 36915201
+    },
+    {
+      "rank": 275,
+      "source_book": "https://thegreatestbooks.org/books/942",
+      "title": "The Sorrows of Young Werther",
+      "author": "Johann Wolfgang von Goethe",
+      "gutenberg_id": 2527,
+      "gutenberg_title": "The Sorrows of Young Werther",
+      "file": "2527/pg2527-images-3.epub",
+      "size_bytes": 181802
+    },
+    {
+      "rank": 276,
+      "source_book": "https://thegreatestbooks.org/books/224",
+      "title": "Nostromo",
+      "author": "Joseph Conrad",
+      "gutenberg_id": 2021,
+      "gutenberg_title": "Nostromo: A Tale of the Seaboard",
+      "file": "2021/pg2021-images-3.epub",
+      "size_bytes": 489343
+    },
+    {
+      "rank": 277,
+      "source_book": "https://thegreatestbooks.org/books/935",
+      "title": "The Princess of Cleves",
+      "author": "Madame de La Fayette",
+      "gutenberg_id": 467,
+      "gutenberg_title": "The Princess of Cleves",
+      "file": "467/pg467-images-3.epub",
+      "size_bytes": 188405
+    },
+    {
+      "rank": 278,
+      "source_book": "https://thegreatestbooks.org/books/598",
+      "title": "Oresteia",
+      "author": "Aeschylus",
+      "gutenberg_id": 8604,
+      "gutenberg_title": "The House of Atreus; Being the Agamemnon, the Libation bearers, and the Furies",
+      "file": "8604/pg8604-images-3.epub",
+      "size_bytes": 188747
+    },
+    {
+      "rank": 280,
+      "source_book": "https://thegreatestbooks.org/books/222",
+      "title": "Jude the Obscure",
+      "author": "Thomas Hardy",
+      "gutenberg_id": 153,
+      "gutenberg_title": "Jude the Obscure",
+      "file": "153/pg153-images-3.epub",
+      "size_bytes": 638345
+    },
+    {
+      "rank": 285,
+      "source_book": "https://thegreatestbooks.org/books/243",
+      "title": "Of Human Bondage",
+      "author": "W. Somerset Maugham",
+      "gutenberg_id": 351,
+      "gutenberg_title": "Of Human Bondage",
+      "file": "351/pg351-images-3.epub",
+      "size_bytes": 772117
+    },
+    {
+      "rank": 288,
+      "source_book": "https://thegreatestbooks.org/books/144",
+      "title": "A Room With a View",
+      "author": "E. M. Forster",
+      "gutenberg_id": 2641,
+      "gutenberg_title": "A Room with a View",
+      "file": "2641/pg2641-images-3.epub",
+      "size_bytes": 453885
+    },
+    {
+      "rank": 290,
+      "source_book": "https://thegreatestbooks.org/books/1688",
+      "title": "The Confessions of Jean-Jacques Rousseau",
+      "author": "Jean-Jacques Rousseau",
+      "gutenberg_id": 3913,
+      "gutenberg_title": "The Confessions of Jean Jacques Rousseau — Complete",
+      "file": "3913/pg3913-images-3.epub",
+      "size_bytes": 1697321
+    },
+    {
+      "rank": 291,
+      "source_book": "https://thegreatestbooks.org/books/2819",
+      "title": "Ivanhoe",
+      "author": "Sir Walter Scott",
+      "gutenberg_id": 82,
+      "gutenberg_title": "Ivanhoe: A Romance",
+      "file": "82/pg82-images-3.epub",
+      "size_bytes": 3335189
+    },
+    {
+      "rank": 293,
+      "source_book": "https://thegreatestbooks.org/books/911",
+      "title": "The Life of Samuel Johnson",
+      "author": "James Boswell",
+      "gutenberg_id": 8918,
+      "gutenberg_title": "Life of Johnson, Volume 1 / 1709-1765",
+      "file": "8918/pg8918-images-3.epub",
+      "size_bytes": 707332,
+      "parts": [
+        {
+          "gutenberg_id": 8918,
+          "gutenberg_title": "Life of Johnson, Volume 1 / 1709-1765",
+          "file": "8918/pg8918-images-3.epub",
+          "size_bytes": 707332
+        },
+        {
+          "gutenberg_id": 9072,
+          "gutenberg_title": "Life of Johnson, Volume 2 / 1765-1776",
+          "file": "9072/pg9072-images-3.epub",
+          "size_bytes": 628432
+        },
+        {
+          "gutenberg_id": 9180,
+          "gutenberg_title": "Life of Johnson, Volume 3 / 1776-1780",
+          "file": "9180/pg9180-images-3.epub",
+          "size_bytes": 600428
+        },
+        {
+          "gutenberg_id": 10357,
+          "gutenberg_title": "Life of Johnson, Volume 4 / 1780-1784",
+          "file": "10357/pg10357-images-3.epub",
+          "size_bytes": 595469
+        },
+        {
+          "gutenberg_id": 10451,
+          "gutenberg_title": "Life of Johnson, Volume 5 / Tour to the Hebrides (1773) and Journey into North Wales (1774)",
+          "file": "10451/pg10451-images-3.epub",
+          "size_bytes": 597361
+        },
+        {
+          "gutenberg_id": 11729,
+          "gutenberg_title": "Life of Johnson, Volume 6 / Addenda, index, dicta philosophi, etc.",
+          "file": "11729/pg11729-images-3.epub",
+          "size_bytes": 527636
+        }
+      ]
+    },
+    {
+      "rank": 300,
+      "source_book": "https://thegreatestbooks.org/books/440",
+      "title": "Medea",
+      "author": "Euripides",
+      "gutenberg_id": 35451,
+      "gutenberg_title": "Medea of Euripides",
+      "file": "35451/pg35451-images-3.epub",
+      "size_bytes": 127150
+    },
+    {
+      "rank": 301,
+      "source_book": "https://thegreatestbooks.org/books/231",
+      "title": "Winesburg, Ohio",
+      "author": "Sherwood Anderson",
+      "gutenberg_id": 416,
+      "gutenberg_title": "Winesburg, Ohio: A Group of Tales of Ohio Small Town Life",
+      "file": "416/pg416-images-3.epub",
+      "size_bytes": 280535
+    },
+    {
+      "rank": 306,
+      "source_book": "https://thegreatestbooks.org/books/1679",
+      "title": "Pensées",
+      "author": "Blaise Pascal",
+      "gutenberg_id": 18269,
+      "gutenberg_title": "Pascal's Pensées",
+      "file": "18269/pg18269-images-3.epub",
+      "size_bytes": 379262
+    },
+    {
+      "rank": 307,
+      "source_book": "https://thegreatestbooks.org/books/429",
+      "title": "The Time Machine",
+      "author": "H. G. Wells",
+      "gutenberg_id": 35,
+      "gutenberg_title": "The Time Machine",
+      "file": "35/pg35-images-3.epub",
+      "size_bytes": 307155
+    },
+    {
+      "rank": 308,
+      "source_book": "https://thegreatestbooks.org/books/2572",
+      "title": "The Poems of Robert Frost",
+      "author": "Robert Frost",
+      "gutenberg_id": 78327,
+      "gutenberg_title": "Collected poems of Robert Frost",
+      "file": "78327/pg78327-images-3.epub",
+      "size_bytes": 711434,
+      "edition_note": "The 1930 Collected Poems edition."
+    },
+    {
+      "rank": 311,
+      "source_book": "https://thegreatestbooks.org/books/2365",
+      "title": "Household Tales",
+      "author": "Brothers Grimm",
+      "gutenberg_id": 5314,
+      "gutenberg_title": "Household Tales by Brothers Grimm",
+      "file": "5314/pg5314-images-3.epub",
+      "size_bytes": 820299
+    },
+    {
+      "rank": 312,
+      "source_book": "https://thegreatestbooks.org/books/463",
+      "title": "Mahabharata",
+      "author": "Vyasa",
+      "gutenberg_id": 15474,
+      "gutenberg_title": "The Mahabharata of Krishna-Dwaipayana Vyasa, Volume 1 / Books 1, 2 and 3",
+      "file": "15474/pg15474-images-3.epub",
+      "size_bytes": 1488969,
+      "parts": [
+        {
+          "gutenberg_id": 15474,
+          "gutenberg_title": "The Mahabharata of Krishna-Dwaipayana Vyasa, Volume 1 / Books 1, 2 and 3",
+          "file": "15474/pg15474-images-3.epub",
+          "size_bytes": 1488969
+        },
+        {
+          "gutenberg_id": 15475,
+          "gutenberg_title": "The Mahabharata of Krishna-Dwaipayana Vyasa, Volume 2 / Books 4, 5, 6 and 7",
+          "file": "15475/pg15475-images-3.epub",
+          "size_bytes": 1566636
+        },
+        {
+          "gutenberg_id": 15476,
+          "gutenberg_title": "The Mahabharata of Krishna-Dwaipayana Vyasa, Volume 3 / Books 8, 9, 10, 11 and 12",
+          "file": "15476/pg15476-images-3.epub",
+          "size_bytes": 1765188
+        },
+        {
+          "gutenberg_id": 15477,
+          "gutenberg_title": "The Mahabharata of Krishna-Dwaipayana Vyasa, Volume 4 / Books 13, 14, 15, 16, 17 and 18",
+          "file": "15477/pg15477-images-3.epub",
+          "size_bytes": 984969
+        }
+      ]
+    },
+    {
+      "rank": 313,
+      "source_book": "https://thegreatestbooks.org/books/1497",
+      "title": "Communist Manifesto",
+      "author": "Karl Marx & Friedrich Engels",
+      "gutenberg_id": 61,
+      "gutenberg_title": "The Communist Manifesto",
+      "file": "61/pg61-images-3.epub",
+      "size_bytes": 116175
+    },
+    {
+      "rank": 320,
+      "source_book": "https://thegreatestbooks.org/books/195",
+      "title": "Clarissa",
+      "author": "Samuel Richardson",
+      "gutenberg_id": 9296,
+      "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 1",
+      "file": "9296/pg9296-images-3.epub",
+      "size_bytes": 336256,
+      "parts": [
+        {
+          "gutenberg_id": 9296,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 1",
+          "file": "9296/pg9296-images-3.epub",
+          "size_bytes": 336256
+        },
+        {
+          "gutenberg_id": 9798,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 2",
+          "file": "9798/pg9798-images-3.epub",
+          "size_bytes": 339356
+        },
+        {
+          "gutenberg_id": 9881,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 3",
+          "file": "9881/pg9881-images-3.epub",
+          "size_bytes": 343722
+        },
+        {
+          "gutenberg_id": 10462,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 4",
+          "file": "10462/pg10462-images-3.epub",
+          "size_bytes": 348588
+        },
+        {
+          "gutenberg_id": 10799,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 5",
+          "file": "10799/pg10799-images-3.epub",
+          "size_bytes": 342197
+        },
+        {
+          "gutenberg_id": 11364,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 6",
+          "file": "11364/pg11364-images-3.epub",
+          "size_bytes": 407506
+        },
+        {
+          "gutenberg_id": 11889,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 7",
+          "file": "11889/pg11889-images-3.epub",
+          "size_bytes": 348455
+        },
+        {
+          "gutenberg_id": 12180,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 8",
+          "file": "12180/pg12180-images-3.epub",
+          "size_bytes": 343248
+        },
+        {
+          "gutenberg_id": 12398,
+          "gutenberg_title": "Clarissa Harlowe; or the history of a young lady — Volume 9",
+          "file": "12398/pg12398-images-3.epub",
+          "size_bytes": 334301
+        }
+      ],
+      "edition_note": "The nine-volume complete novel; Gutenberg 29964 is a critical study and is excluded."
+    },
+    {
+      "rank": 321,
+      "source_book": "https://thegreatestbooks.org/books/2367",
+      "title": "History of My Life",
+      "author": "Giacomo Casanova",
+      "gutenberg_id": 2981,
+      "gutenberg_title": "The Memoirs of Jacques Casanova de Seingalt, 1725-1798. Complete",
+      "file": "2981/pg2981-images-3.epub",
+      "size_bytes": 9169750
+    },
+    {
+      "rank": 323,
+      "source_book": "https://thegreatestbooks.org/books/236",
+      "title": "Sister Carrie",
+      "author": "Theodore Dreiser",
+      "gutenberg_id": 233,
+      "gutenberg_title": "Sister Carrie: A Novel",
+      "file": "233/pg233-images-3.epub",
+      "size_bytes": 518267
+    },
+    {
+      "rank": 326,
+      "source_book": "https://thegreatestbooks.org/books/2565",
+      "title": "Tarzan of the Apes",
+      "author": "Edgar Rice Burroughs",
+      "gutenberg_id": 78,
+      "gutenberg_title": "Tarzan of the Apes",
+      "file": "78/pg78-images-3.epub",
+      "size_bytes": 444996
+    },
+    {
+      "rank": 327,
+      "source_book": "https://thegreatestbooks.org/books/2336",
+      "title": "Notes from the Underground",
+      "author": "Fyodor Dostoevsky",
+      "gutenberg_id": 600,
+      "gutenberg_title": "Notes from the Underground",
+      "file": "600/pg600-images-3.epub",
+      "size_bytes": 391751
+    },
+    {
+      "rank": 330,
+      "source_book": "https://thegreatestbooks.org/books/1640",
+      "title": "Meditations",
+      "author": "Marcus Aurelius",
+      "gutenberg_id": 2680,
+      "gutenberg_title": "Meditations",
+      "file": "2680/pg2680-images-3.epub",
+      "size_bytes": 454997
+    },
+    {
+      "rank": 331,
+      "source_book": "https://thegreatestbooks.org/books/257",
+      "title": "The Thirty-Nine Steps",
+      "author": "John Buchan",
+      "gutenberg_id": 558,
+      "gutenberg_title": "The Thirty-Nine Steps",
+      "file": "558/pg558-images-3.epub",
+      "size_bytes": 334995
+    },
+    {
+      "rank": 332,
+      "source_book": "https://thegreatestbooks.org/books/885",
+      "title": "Leviathan",
+      "author": "Thomas Hobbes",
+      "gutenberg_id": 3207,
+      "gutenberg_title": "Leviathan",
+      "file": "3207/pg3207-images-3.epub",
+      "size_bytes": 861317
+    },
+    {
+      "rank": 334,
+      "source_book": "https://thegreatestbooks.org/books/3365",
+      "title": "The Castle of Otranto",
+      "author": "Horace Walpole",
+      "gutenberg_id": 696,
+      "gutenberg_title": "The Castle of Otranto",
+      "file": "696/pg696-images-3.epub",
+      "size_bytes": 444204
+    },
+    {
+      "rank": 339,
+      "source_book": "https://thegreatestbooks.org/books/2645",
+      "title": "Moll Flanders",
+      "author": "Daniel Defoe",
+      "gutenberg_id": 370,
+      "gutenberg_title": "The Fortunes and Misfortunes of the Famous Moll Flanders",
+      "file": "370/pg370-images-3.epub",
+      "size_bytes": 520322
+    },
+    {
+      "rank": 340,
+      "source_book": "https://thegreatestbooks.org/books/3663",
+      "title": "The Vicar of Wakefield",
+      "author": "Oliver Goldsmith",
+      "gutenberg_id": 2667,
+      "gutenberg_title": "The Vicar of Wakefield",
+      "file": "2667/pg2667-images-3.epub",
+      "size_bytes": 335019
+    },
+    {
+      "rank": 344,
+      "source_book": "https://thegreatestbooks.org/books/937",
+      "title": "Germinal",
+      "author": "Émile Zola",
+      "gutenberg_id": 56528,
+      "gutenberg_title": "Germinal",
+      "file": "56528/pg56528-images-3.epub",
+      "size_bytes": 469151
+    },
+    {
+      "rank": 345,
+      "source_book": "https://thegreatestbooks.org/books/1269",
+      "title": "Dubliners",
+      "author": "James Joyce",
+      "gutenberg_id": 2814,
+      "gutenberg_title": "Dubliners",
+      "file": "2814/pg2814-images-3.epub",
+      "size_bytes": 331930
+    },
+    {
+      "rank": 346,
+      "source_book": "https://thegreatestbooks.org/books/488",
+      "title": "The Death of Ivan Ilyich",
+      "author": "Leo Tolstoy",
+      "gutenberg_id": 79990,
+      "gutenberg_title": "The death of Ivan Ilyitch, and other stories",
+      "file": "79990/pg79990-images-3.epub",
+      "size_bytes": 649126
+    },
+    {
+      "rank": 348,
+      "source_book": "https://thegreatestbooks.org/books/2748",
+      "title": "The Mayor of Casterbridge",
+      "author": "Thomas Hardy",
+      "gutenberg_id": 143,
+      "gutenberg_title": "The Mayor of Casterbridge",
+      "file": "143/pg143-images-3.epub",
+      "size_bytes": 530484
+    },
+    {
+      "rank": 351,
+      "source_book": "https://thegreatestbooks.org/books/1606",
+      "title": "Parallel Lives",
+      "author": "Plutarch",
+      "gutenberg_id": 674,
+      "gutenberg_title": "Plutarch: Lives of the noble Grecians and Romans",
+      "file": "674/pg674-images-3.epub",
+      "size_bytes": 1767973
+    },
+    {
+      "rank": 352,
+      "source_book": "https://thegreatestbooks.org/books/2371",
+      "title": "The Adventures of Oliver Twist",
+      "author": "Charles Dickens",
+      "gutenberg_id": 730,
+      "gutenberg_title": "Oliver Twist",
+      "file": "730/pg730-images-3.epub",
+      "size_bytes": 687247
+    },
+    {
+      "rank": 353,
+      "source_book": "https://thegreatestbooks.org/books/5697",
+      "title": "Peter And Wendy",
+      "author": "J. M. Barrie",
+      "gutenberg_id": 26654,
+      "gutenberg_title": "Peter and Wendy",
+      "file": "26654/pg26654-images-3.epub",
+      "size_bytes": 1474089
+    },
+    {
+      "rank": 357,
+      "source_book": "https://thegreatestbooks.org/books/2457",
+      "title": "Eugene Onegin",
+      "author": "Alexander Pushkin",
+      "gutenberg_id": 23997,
+      "gutenberg_title": "Eugene Oneguine [Onegin] / A Romance of Russian Life in Verse",
+      "file": "23997/pg23997-images-3.epub",
+      "size_bytes": 202852
+    },
+    {
+      "rank": 362,
+      "source_book": "https://thegreatestbooks.org/books/2847",
+      "title": "Romeo and Juliet",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1513,
+      "gutenberg_title": "Romeo and Juliet",
+      "file": "1513/pg1513-images-3.epub",
+      "size_bytes": 341167
+    },
+    {
+      "rank": 364,
+      "source_book": "https://thegreatestbooks.org/books/821",
+      "title": "Relativity",
+      "author": "Albert Einstein",
+      "gutenberg_id": 30155,
+      "gutenberg_title": "Relativity: The Special and General Theory",
+      "file": "30155/pg30155-images-3.epub",
+      "size_bytes": 1060569
+    },
+    {
+      "rank": 366,
+      "source_book": "https://thegreatestbooks.org/books/235",
+      "title": "The Golden Bowl",
+      "author": "Henry James",
+      "gutenberg_id": 4264,
+      "gutenberg_title": "The Golden Bowl — Complete",
+      "file": "4264/pg4264-images-3.epub",
+      "size_bytes": 543436
+    },
+    {
+      "rank": 367,
+      "source_book": "https://thegreatestbooks.org/books/3683",
+      "title": "Melmoth the Wanderer",
+      "author": "Charles Robert Maturin",
+      "gutenberg_id": 53685,
+      "gutenberg_title": "Melmoth the Wanderer, Vol. 1",
+      "file": "53685/pg53685-images-3.epub",
+      "size_bytes": 238993,
+      "parts": [
+        {
+          "gutenberg_id": 53685,
+          "gutenberg_title": "Melmoth the Wanderer, Vol. 1",
+          "file": "53685/pg53685-images-3.epub",
+          "size_bytes": 238993
+        },
+        {
+          "gutenberg_id": 53686,
+          "gutenberg_title": "Melmoth the Wanderer, Vol. 2",
+          "file": "53686/pg53686-images-3.epub",
+          "size_bytes": 228295
+        },
+        {
+          "gutenberg_id": 53687,
+          "gutenberg_title": "Melmoth the Wanderer, Vol. 3",
+          "file": "53687/pg53687-images-3.epub",
+          "size_bytes": 259597
+        },
+        {
+          "gutenberg_id": 53688,
+          "gutenberg_title": "Melmoth the Wanderer, Vol. 4",
+          "file": "53688/pg53688-images-3.epub",
+          "size_bytes": 313780
+        }
+      ]
+    },
+    {
+      "rank": 369,
+      "source_book": "https://thegreatestbooks.org/books/411",
+      "title": "The Sonnets",
+      "author": "William Shakespeare",
+      "gutenberg_id": 1041,
+      "gutenberg_title": "Shakespeare's Sonnets",
+      "file": "1041/pg1041-images-3.epub",
+      "size_bytes": 384381
+    },
+    {
+      "rank": 372,
+      "source_book": "https://thegreatestbooks.org/books/1154",
+      "title": "Our Mutual Friend",
+      "author": "Charles Dickens",
+      "gutenberg_id": 883,
+      "gutenberg_title": "Our Mutual Friend",
+      "file": "883/pg883-images-3.epub",
+      "size_bytes": 20049112
+    },
+    {
+      "rank": 374,
+      "source_book": "https://thegreatestbooks.org/books/250",
+      "title": "The Old Wives' Tale",
+      "author": "Arnold Bennett",
+      "gutenberg_id": 5247,
+      "gutenberg_title": "The Old Wives' Tale",
+      "file": "5247/pg5247-images-3.epub",
+      "size_bytes": 601975
+    },
+    {
+      "rank": 377,
+      "source_book": "https://thegreatestbooks.org/books/2344",
+      "title": "The Moonstone",
+      "author": "Wilkie Collins",
+      "gutenberg_id": 155,
+      "gutenberg_title": "The Moonstone",
+      "file": "155/pg155-images-3.epub",
+      "size_bytes": 659233
+    },
+    {
+      "rank": 382,
+      "source_book": "https://thegreatestbooks.org/books/2497",
+      "title": "The Hunchback of Notre-Dame",
+      "author": "Victor Hugo",
+      "gutenberg_id": 2610,
+      "gutenberg_title": "Notre-Dame de Paris",
+      "file": "2610/pg2610-images-3.epub",
+      "size_bytes": 729992
+    },
+    {
+      "rank": 383,
+      "source_book": "https://thegreatestbooks.org/books/26",
+      "title": "Death Comes for the Archbishop",
+      "author": "Willa Cather",
+      "gutenberg_id": 69730,
+      "gutenberg_title": "Death comes for the archbishop",
+      "file": "69730/pg69730-images-3.epub",
+      "size_bytes": 590245
+    },
+    {
+      "rank": 389,
+      "source_book": "https://thegreatestbooks.org/books/2733",
+      "title": "The Federalist Papers",
+      "author": "Alexander Hamilton, James Madison & John Jay",
+      "gutenberg_id": 1404,
+      "gutenberg_title": "The Federalist Papers",
+      "file": "1404/pg1404-images-3.epub",
+      "size_bytes": 497918
+    },
+    {
+      "rank": 393,
+      "source_book": "https://thegreatestbooks.org/books/180",
+      "title": "War of the Worlds",
+      "author": "H. G. Wells",
+      "gutenberg_id": 36,
+      "gutenberg_title": "The war of the worlds",
+      "file": "36/pg36-images-3.epub",
+      "size_bytes": 292374
+    },
+    {
+      "rank": 395,
+      "source_book": "https://thegreatestbooks.org/books/151",
+      "title": "The Wonderful Wizard of Oz",
+      "author": "L. Frank Baum",
+      "gutenberg_id": 55,
+      "gutenberg_title": "The Wonderful Wizard of Oz",
+      "file": "55/pg55-images-3.epub",
+      "size_bytes": 350637
+    },
+    {
+      "rank": 398,
+      "source_book": "https://thegreatestbooks.org/books/1680",
+      "title": "Ethics",
+      "author": "Baruch de Spinoza",
+      "gutenberg_id": 3800,
+      "gutenberg_title": "Ethics",
+      "file": "3800/pg3800-images-3.epub",
+      "size_bytes": 226041
+    },
+    {
+      "rank": 400,
+      "source_book": "https://thegreatestbooks.org/books/2743",
+      "title": "The Mill on the Floss",
+      "author": "George Eliot",
+      "gutenberg_id": 6688,
+      "gutenberg_title": "The Mill on the Floss",
+      "file": "6688/pg6688-images-3.epub",
+      "size_bytes": 809950
+    },
+    {
+      "rank": 401,
+      "source_book": "https://thegreatestbooks.org/books/687",
+      "title": "The Education of Henry Adams",
+      "author": "Henry Adams",
+      "gutenberg_id": 2044,
+      "gutenberg_title": "The Education of Henry Adams",
+      "file": "2044/pg2044-images-3.epub",
+      "size_bytes": 493169
+    },
+    {
+      "rank": 409,
+      "source_book": "https://thegreatestbooks.org/books/490",
+      "title": "Ramayana",
+      "author": "Valmiki",
+      "gutenberg_id": 24869,
+      "gutenberg_title": "The Rámáyan of Válmíki, translated into English verse",
+      "file": "24869/pg24869-images-3.epub",
+      "size_bytes": 1307459
+    },
+    {
+      "rank": 412,
+      "source_book": "https://thegreatestbooks.org/books/452",
+      "title": "A Doll's House",
+      "author": "Henrik Ibsen",
+      "gutenberg_id": 2542,
+      "gutenberg_title": "A Doll's House : a play",
+      "file": "2542/pg2542-images-3.epub",
+      "size_bytes": 305811
+    },
+    {
+      "rank": 413,
+      "source_book": "https://thegreatestbooks.org/books/3407",
+      "title": "Sense and Sensibility",
+      "author": "Jane Austen",
+      "gutenberg_id": 161,
+      "gutenberg_title": "Sense and Sensibility",
+      "file": "161/pg161-images-3.epub",
+      "size_bytes": 580103
+    },
+    {
+      "rank": 426,
+      "source_book": "https://thegreatestbooks.org/books/3691",
+      "title": "North and South",
+      "author": "Elizabeth Gaskell",
+      "gutenberg_id": 4276,
+      "gutenberg_title": "North and South",
+      "file": "4276/pg4276-images-3.epub",
+      "size_bytes": 673959
+    },
+    {
+      "rank": 428,
+      "source_book": "https://thegreatestbooks.org/books/3287",
+      "title": "The Nicomachean Ethics",
+      "author": "Aristotle",
+      "gutenberg_id": 8438,
+      "gutenberg_title": "The Nicomachean ethics of Aristotle",
+      "file": "8438/pg8438-images-3.epub",
+      "size_bytes": 463593
+    },
+    {
+      "rank": 431,
+      "source_book": "https://thegreatestbooks.org/books/2867",
+      "title": "The Man Who Was Thursday",
+      "author": "G. K. Chesterton",
+      "gutenberg_id": 1695,
+      "gutenberg_title": "The Man Who Was Thursday: A Nightmare",
+      "file": "1695/pg1695-images-3.epub",
+      "size_bytes": 413995
+    },
+    {
+      "rank": 438,
+      "source_book": "https://thegreatestbooks.org/books/228",
+      "title": "Way of All Flesh",
+      "author": "Samuel Butler",
+      "gutenberg_id": 2084,
+      "gutenberg_title": "The Way of All Flesh",
+      "file": "2084/pg2084-images-3.epub",
+      "size_bytes": 931193
+    },
+    {
+      "rank": 440,
+      "source_book": "https://thegreatestbooks.org/books/1603",
+      "title": "De Rerum Natura",
+      "author": "Lucretius",
+      "gutenberg_id": 785,
+      "gutenberg_title": "On the Nature of Things",
+      "file": "785/pg785-images-3.epub",
+      "size_bytes": 255876
+    },
+    {
+      "rank": 441,
+      "source_book": "https://thegreatestbooks.org/books/3730",
+      "title": "Quo Vadis",
+      "author": "Henryk Sienkiewicz",
+      "gutenberg_id": 2853,
+      "gutenberg_title": "Quo Vadis: A Narrative of the Time of Nero",
+      "file": "2853/pg2853-images-3.epub",
+      "size_bytes": 567483
+    },
+    {
+      "rank": 444,
+      "source_book": "https://thegreatestbooks.org/books/1151",
+      "title": "Critique of Pure Reason",
+      "author": "Immanuel Kant",
+      "gutenberg_id": 4280,
+      "gutenberg_title": "The Critique of Pure Reason",
+      "file": "4280/pg4280-images-3.epub",
+      "size_bytes": 628595
+    },
+    {
+      "rank": 445,
+      "source_book": "https://thegreatestbooks.org/books/3729",
+      "title": "The Island of Doctor Moreau",
+      "author": "H. G. Wells",
+      "gutenberg_id": 159,
+      "gutenberg_title": "The island of Doctor Moreau",
+      "file": "159/pg159-images-3.epub",
+      "size_bytes": 392362
+    },
+    {
+      "rank": 450,
+      "source_book": "https://thegreatestbooks.org/books/214",
+      "title": "Daniel Deronda",
+      "author": "George Eliot",
+      "gutenberg_id": 7469,
+      "gutenberg_title": "Daniel Deronda",
+      "file": "7469/pg7469-images-3.epub",
+      "size_bytes": 1053111
+    },
+    {
+      "rank": 452,
+      "source_book": "https://thegreatestbooks.org/books/238",
+      "title": "The Secret Agent",
+      "author": "Joseph Conrad",
+      "gutenberg_id": 974,
+      "gutenberg_title": "The Secret Agent: A Simple Tale",
+      "file": "974/pg974-images-3.epub",
+      "size_bytes": 285977
+    },
+    {
+      "rank": 455,
+      "source_book": "https://thegreatestbooks.org/books/3675",
+      "title": "The Monk",
+      "author": "Matthew Lewis",
+      "gutenberg_id": 601,
+      "gutenberg_title": "The Monk: A Romance",
+      "file": "601/pg601-images-3.epub",
+      "size_bytes": 582872
+    }
+  ],
+  "edition_exclusions": [
+    {
+      "rank": 94,
+      "title": "Faust",
+      "reason": "Only Part One of Faust is available in the verified English editions."
+    },
+    {
+      "rank": 127,
+      "title": "The Tale of Genji",
+      "reason": "The English Gutenberg Tale of Genji is only nine chapters, not the complete work."
+    },
+    {
+      "rank": 128,
+      "title": "The Stories of Anton Chekhov",
+      "reason": "No single complete equivalent to the ranked Chekhov story collection was identified."
+    },
+    {
+      "rank": 360,
+      "title": "Tractatus Logico-Philosophicus",
+      "reason": "No EPUB is currently published for Gutenberg 5740; verified mirror files are metadata and cover images only."
+    },
+    {
+      "rank": 363,
+      "title": "The Human Comedy",
+      "reason": "Gutenberg 1968 is introductions and an appendix, not the Human Comedy novels."
+    },
+    {
+      "rank": 370,
+      "title": "Oedipus at Colonus",
+      "reason": "Oedipus at Colonus is already included with the Sophocles plays selected at rank 142."
+    },
+    {
+      "rank": 415,
+      "title": "Death Of A Salesman",
+      "reason": "The matching result is Death of a Spaceman by a different Miller."
+    }
+  ]
+}

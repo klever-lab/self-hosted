@@ -304,6 +304,9 @@ def main():
         command.add_argument('app', nargs='?', choices=APPS)
     commands.add_parser('credentials')
     commands.add_parser('import-books')
+    gutenberg = commands.add_parser('import-gutenberg')
+    gutenberg.add_argument('--limit', type=int, default=200)
+    gutenberg.add_argument('--dry-run', action='store_true')
     commands.add_parser('backup')
     args = parser.parse_args()
     if STATE.is_relative_to(ROOT):
@@ -342,6 +345,10 @@ def main():
         result = kube('-n', 'qbittorrent', 'create', 'job', '--from=cronjob/book-importer', name)
         print(result.stdout.decode(), end='')
         print(f'Follow with: kubectl -n qbittorrent logs -f job/{name}')
+    elif args.command == 'import-gutenberg':
+        from gutenberg import import_books
+        import_books(cfg, load('access.json'), STATE, ROOT,
+                     limit=args.limit, dry_run=args.dry_run)
     elif args.command == 'backup':
         backup(cfg)
 

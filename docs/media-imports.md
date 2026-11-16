@@ -39,6 +39,53 @@ library before changing a pending entry in `/state/imports.sqlite3`: mark it
 `imported` with the correct book ID if the upload succeeded, or remove that entry
 to retry after confirming it did not. Suspend the CronJob while repairing the ledger.
 
+## Gutenberg reading list
+
+The fixed [200-book list](../integrations/books/greatest-200.json) follows
+[The Greatest Books](https://thegreatestbooks.org/) all-time ranking, passing over
+works without an identified English Project Gutenberg edition. The manifest records
+the ranking snapshot, original rank, Gutenberg IDs, and edition choices. General
+poetry and story collections use the identified public-domain editions; these can
+differ from modern collections. Summaries, critical studies, indexes, and incomplete
+volumes do not substitute for the ranked work.
+
+Run from the operator computer with `rsync`, Tailscale, and cluster access:
+
+```bash
+./self-hosted import-gutenberg --dry-run
+./self-hosted import-gutenberg
+```
+
+The command imports this list once and stops. `--limit N` selects the first N entries,
+up to 200. It checks local and worker free space, fetches only the named EPUB paths
+from Gutenberg's rsync mirror, validates each EPUB's ZIP contents and Gutenberg
+identifier, then uses Calibre-Web's authenticated upload endpoint. Existing Gutenberg
+IDs are skipped. Application deployment settings and the torrent import schedule
+are independent of this operator command.
+
+Multipart works are combined into a single EPUB with
+[EpubMerge](https://github.com/JimmXinu/EpubMerge/tree/8cc76632722a94abc2ad08ff0f5cbda83ffb96eb).
+The script downloads its engine at that commit and verifies its SHA-256 before use.
+The merged book retains each volume's contents and navigation and uses the first
+volume's Gutenberg URL as its source identifier. This keeps each selected work in
+one library entry. The manifest lists all constituent volumes.
+
+Downloads, the merge engine, `imports.sqlite3`, and `completion.json` live under
+`gutenberg-top-200/` in the protected operator directory. The final receipt maps all
+selected Gutenberg IDs to verified library book IDs. Keep the receipt and ledger
+with operator backups; book files and library databases stay outside Git.
+
+The ledger records upload intent before each POST. A later run reconciles an
+interrupted upload against the library's identifiers. If an uncertain upload has no
+matching library book, it stops for review. Confirm that Calibre-Web finished the
+request and that the book is absent before removing that one `pending` ledger row
+and retrying. A previously recorded book that has been deleted also needs review.
+An existing first volume of a multipart work needs review before it can be treated
+as the complete combined edition. The command only reads the live library database;
+Calibre-Web remains its sole writer.
+
+## Torrent network access
+
 qBittorrent uses SOCKS5 for trackers, peers, RSS, and miscellaneous requests. Its
 local DNS forwarder sends hostname lookups through the same VPN. The only permitted
 external pod traffic is encrypted UDP to its configured
