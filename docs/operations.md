@@ -5,6 +5,11 @@ existing worker; Guaranine's control plane remains dedicated to platform work.
 Both applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
+The qBittorrent VPN proxy has a 512 MiB memory limit. Its earlier 128 MiB limit
+caused repeated OOM kills during peer transfers; each restart disconnected peers
+and interrupted downloads. Check the `vpn` init container's restart count and
+last termination reason when investigating sudden download-speed drops.
+
 ## Private access
 
 Both HTTPS gateways disable Tailscale Funnel and accept connections only through

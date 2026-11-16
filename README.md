@@ -3,12 +3,14 @@
 Application deployments and integrations on [Guaranine](https://github.com/klever-lab/guaranine).
 Guaranine owns the Kubernetes platform. This repository owns the applications.
 
-- **qBittorrent:** private HTTPS administration, persistent downloads, and a dedicated
+- **qBittorrent / VueTorrent:** private HTTPS administration, persistent downloads, and a dedicated
   Windscribe WireGuard connection through a non-root userspace proxy.
 - **Calibre-Web / K Books:** authenticated HTTPS library, EPUB/KEPUB support, and
   per-user Kobo sync. The library is available only through Tailscale.
 - **Book importer:** completed downloads in qBittorrent's `books` category are uploaded
   to Calibre-Web every two minutes. The original files remain available for seeding.
+- **Jellyfin file gateway:** read-only access to download payloads for the separately
+  managed Jellyfin integration. Original files remain on the download volume.
 - **Gutenberg reading list:** a fixed selection of 200 English classics from
   The Greatest Books ranking, imported on demand into the same library.
 

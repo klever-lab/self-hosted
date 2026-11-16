@@ -98,8 +98,8 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
           resources:
-            requests: {cpu: 25m, memory: 32Mi}
-            limits: {cpu: "1", memory: 128Mi}
+            requests: {cpu: 25m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
           startupProbe:
             exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
             periodSeconds: 2
@@ -108,6 +108,19 @@ spec:
             exec: {command: [bash, -ec, 'exec 3<>/dev/tcp/127.0.0.1/1080']}
           volumeMounts:
             - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
+        - name: webui
+          image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9
+          command: [python3, /bootstrap/install_webui.py]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: "1", memory: 128Mi}
+          volumeMounts:
+            - {name: config, mountPath: /config}
+            - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
       containers:
         - name: qbittorrent
           image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9

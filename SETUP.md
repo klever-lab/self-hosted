@@ -42,6 +42,18 @@ Funnel is disabled for both gateways. Calibre-Web also requires authentication,
 with anonymous browsing and public registration disabled. Its login is configured before startup.
 Both gateways have no grant to administer other tailnet devices.
 
+qBittorrent serves VueTorrent at its existing HTTPS address, using the same login.
+The WebUI initializer downloads the pinned release through the VPN, verifies its
+SHA-256, and retains it in the configuration volume. Its pin is
+`apps/qbittorrent/vuetorrent.json`; update the version, release URL and checksum
+together before redeploying. VueTorrent's display settings include transfer graphs
+and bits-per-second speed units.
+
+The read-only download-file service accepts connections only from Jellyfin's edge
+pod. Jellyfin's own repository owns its category mapping, import schedule, library
+configuration and HTTPS playback route; deploy that integration there after
+deploying qBittorrent. Directory listings and symlink access are disabled.
+
 To deploy an application independently:
 
 ```bash

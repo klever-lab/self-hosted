@@ -3,7 +3,13 @@
 qBittorrent downloads to `/downloads/incomplete` and `/downloads/complete` on its
 retained download volume. The initial `books` category uses `/downloads/complete/books`.
 Select that category when adding a book torrent. Other categories remain ordinary
-downloads and are available for future integrations.
+downloads unless a separate integration is configured for them.
+
+The Jellyfin integration publishes stream links for completed video downloads.
+Its category mapping and catalogue state live with the private Jellyfin deployment.
+The file gateway mounts downloads read-only, supports byte-range requests, and
+accepts only the Jellyfin edge pod. It has no internet egress. The gateway does
+not change qBittorrent's VPN routing or permit direct internet fallback.
 
 Every two minutes, the importer queries qBittorrent for completed `books` torrents.
 It hashes supported completed book files up to 200 MiB and uploads new content through Calibre-Web's

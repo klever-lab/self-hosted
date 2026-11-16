@@ -1,4 +1,5 @@
 *.conf
+!apps/qbittorrent/nginx.conf
 *.key
 *.pem
 .env*

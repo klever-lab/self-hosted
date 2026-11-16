@@ -44,6 +44,8 @@ config['WebUI'].update({
     'LocalHostAuth': 'true', 'AuthSubnetWhitelistEnabled': 'false',
     'HostHeaderValidation': 'true', 'CSRFProtection': 'true',
     'ServerDomains': '"' + Path('/credentials/domain').read_text().strip() + ';qbittorrent;localhost"',
+    'AlternativeUIEnabled': 'true',
+    'RootFolder': '/config/webui/' + json.loads(Path('/bootstrap/vuetorrent.json').read_text())['version'],
 })
 config['Preferences']['Connection\\UPnP'] = 'false'
 if fresh:

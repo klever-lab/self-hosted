@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata: {name: download-files}
+spec:
+  selector: {app: download-files}
+  ports: [{name: http, port: 8080, targetPort: 8080}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: download-files}
+spec:
+  podSelector: {matchLabels: {app: download-files}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: jellyfin}}
+          podSelector: {matchLabels: {app: edge}}
+      ports: [{protocol: TCP, port: 8080}]
+  egress: []
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: jellyfin-importer-api}
+spec:
+  podSelector: {matchLabels: {app: qbittorrent}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: jellyfin}}
+          podSelector: {matchLabels: {app: torrent-importer}}
+      ports: [{protocol: TCP, port: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: download-files}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: download-files}}
+  template:
+    metadata: {labels: {app: download-files}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: files
+          image: nginxinc/nginx-unprivileged:stable-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
+          command: [nginx, -g, 'daemon off;']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {cpu: '1', memory: 64Mi}
+          readinessProbe: {httpGet: {path: /healthz, port: 8080}}
+          volumeMounts:
+            - {name: downloads, mountPath: /downloads, readOnly: true}
+            - {name: config, mountPath: /etc/nginx/nginx.conf, subPath: nginx.conf, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: downloads, persistentVolumeClaim: {claimName: downloads}}
+        - {name: config, configMap: {name: download-files}}
+        - {name: tmp, emptyDir: {sizeLimit: 16Mi}}
