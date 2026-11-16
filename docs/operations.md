@@ -8,8 +8,8 @@ start multiple writers against their state.
 ## Private access
 
 Both HTTPS gateways disable Tailscale Funnel and accept connections only through
-the tailnet's access policy. Guaranine owns the policy and disables Funnel permission
-for the tailnet. Deployments preserve the existing gateway identities and hostnames.
+the tailnet's access policy. Guaranine owns the policy and gives these gateways no
+Funnel permission. Deployments preserve the existing gateway identities and hostnames.
 Devices without an authorized Tailscale connection cannot reach these applications;
 see [Kobo access requirements](kobo.md) before configuring a reader.
 

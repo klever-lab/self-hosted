@@ -34,6 +34,9 @@ from the application-state backup, as described in [operations](operations.md).
 
 ## Private access verification
 
+This records the initial lockdown. Jellyfin's separate repository subsequently
+restored public access with a single-IP allowlist. Books and qBittorrent remain private.
+
 Verified on 2026-11-16 UTC after disabling public access:
 
 - The live tailnet policy passed its access tests and matched the repository policy
