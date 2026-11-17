@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Friends VPN</title>
+  <link rel="stylesheet" href="/portal.css">
+  <script type="module" src="/portal.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-content">
+      <span class="brand">Friends VPN</span>
+      <a id="logout" href="/cdn-cgi/access/logout">Sign out</a>
+    </div>
+  </header>
+  <main class="shell">
+    <div class="page-heading">
+      <h1>My devices</h1>
+      <p id="account"></p>
+    </div>
+    <p id="notice" class="notice" role="status" tabindex="-1" hidden></p>
+    <div class="panels" id="panels" hidden>
+      <section class="panel" aria-labelledby="devices-heading">
+        <h2 id="devices-heading">WireGuard profiles</h2>
+        <p id="empty">No devices yet.</p>
+        <ul id="devices"></ul>
+      </section>
+      <section class="panel setup" aria-labelledby="setup-heading">
+        <h2 id="setup-heading">Add a device</h2>
+        <form id="enrollment">
+          <label for="device">Device name</label>
+          <input id="device" name="device" type="text" placeholder="e.g. My phone" maxlength="40" required>
+          <button id="activate" type="submit">Create and activate</button>
+          <button id="cancel" type="button" class="quiet" hidden>Cancel</button>
+        </form>
+        <div id="profile" hidden>
+          <p>Open WireGuard and import the downloaded configuration, or scan the QR code from another device. Then turn on the tunnel.</p>
+          <a id="download" class="button" download>Download .conf</a>
+          <details id="qr-section">
+            <summary>Show QR code</summary>
+            <canvas id="qr" aria-label="WireGuard profile QR code"></canvas>
+          </details>
+          <button id="done" type="button" class="quiet">Done</button>
+        </div>
+      </section>
+    </div>
+    <button id="reload" type="button" hidden>Try again</button>
+    <noscript>Turn on JavaScript to create and manage WireGuard profiles.</noscript>
+  </main>
+</body>
+</html>

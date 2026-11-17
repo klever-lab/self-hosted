@@ -1,0 +1,34 @@
+--- a/protocol/wireguard/endpoint.go
++++ b/protocol/wireguard/endpoint.go
+@@ -135,6 +135,13 @@
+ 	return ep, nil
+ }
+ 
++func (w *Endpoint) ApplyPeerChanges(changes string) error {
++	if !w.started.Load() {
++		return E.New("WireGuard is not ready yet")
++	}
++	return w.endpoint.ApplyPeerChanges(changes)
++}
++
+ func (w *Endpoint) Start(stage adapter.StartStage, scope *adapter.Scope) error {
+ 	switch stage {
+ 	case adapter.StartStateInitialize:
+--- a/transport/wireguard/endpoint.go
++++ b/transport/wireguard/endpoint.go
+@@ -264,6 +264,15 @@
+ 	return nil
+ }
+ 
++func (e *Endpoint) ApplyPeerChanges(changes string) error {
++	e.stateAccess.Lock()
++	defer e.stateAccess.Unlock()
++	if e.device == nil {
++		return E.New("WireGuard is not ready yet")
++	}
++	return e.device.IpcSet(changes)
++}
++
+ func (e *Endpoint) DialContext(ctx context.Context, network string, destination M.Socksaddr) (net.Conn, error) {
+ 	if !destination.Addr.IsValid() {
+ 		return nil, E.Cause(os.ErrInvalid, "invalid non-IP destination")
