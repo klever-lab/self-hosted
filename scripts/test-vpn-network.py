@@ -15,7 +15,10 @@ NETWORK = SCRIPT.parents[1] / 'apps/qbittorrent/network.sh'
 
 
 def run(*args, **kwargs):
-    return subprocess.run(args, check=True, capture_output=True, text=True, **kwargs).stdout
+    result = subprocess.run(args, capture_output=True, text=True, **kwargs)
+    if result.returncode:
+        raise RuntimeError(f'{args[0]} failed: {result.stderr.strip()}')
+    return result.stdout
 
 
 def echo(address, port, *, report_peer=False):
@@ -69,8 +72,10 @@ def probe(address, port, protocol, source='', device=''):
 
 def fixture():
     # These mounts and every network interface exist only in child namespaces.
+    protocols = Path('/etc/protocols').read_bytes()
     run('mount', '-t', 'tmpfs', 'tmpfs', '/run')
     run('mount', '-t', 'tmpfs', 'tmpfs', '/etc')
+    Path('/etc/protocols').write_bytes(protocols)
     Path('/etc/vpn').mkdir()
     run('ip', 'link', 'set', 'lo', 'up')
     with ExitStack() as cleanup, tempfile.TemporaryDirectory() as temporary:
