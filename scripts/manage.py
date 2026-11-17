@@ -22,7 +22,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 STATE = Path(os.environ.get('SELF_HOSTED_OPERATOR_DIR', Path.home() / '.local/state/self-hosted')).expanduser().resolve()
 GUARANINE = Path(os.environ.get('GUARANINE_OPERATOR_DIR', Path.home() / '.local/state/guaranine-kairos')).expanduser()
-APPS = ('qbittorrent', 'calibre-web')
+APPS = ('qbittorrent', 'calibre-web', 'sabnzbd')
 ADMISSION_KINDS = ('ValidatingAdmissionPolicy', 'ValidatingAdmissionPolicyBinding')
 os.environ.setdefault('KUBECTL_REMOTE_COMMAND_WEBSOCKETS', 'false')
 
@@ -64,7 +64,7 @@ def secret(namespace, name, values):
 
 def objects(selected):
     paths = [ROOT / 'apps' / app for app in selected]
-    if set(selected) == set(APPS):
+    if {'qbittorrent', 'calibre-web'} <= set(selected):
         paths.append(ROOT / 'integrations/books')
     items = []
     for path in paths:
@@ -76,6 +76,8 @@ def objects(selected):
             if obj['kind'] in ADMISSION_KINDS:
                 obj['metadata'].pop('namespace', None)
             items.append(obj)
+    if 'sabnzbd' in selected:
+        items.append(yaml.safe_load((ROOT / 'apps/sabnzbd/calibre-access.yaml').read_text()))
     return items
 
 
@@ -166,7 +168,8 @@ def vpn(cfg):
 
 
 def gateway(cfg, app):
-    upstream = 'http://qbittorrent:8080' if app == 'qbittorrent' else 'http://127.0.0.1:8080'
+    upstream = {'qbittorrent': 'http://qbittorrent:8080', 'calibre-web': 'http://127.0.0.1:8080',
+                'sabnzbd': 'http://sabnzbd:8080'}[app]
     serve = {'TCP': {'443': {'HTTPS': True}},
              'Web': {'${TS_CERT_DOMAIN}:443': {'Handlers': {'/': {'Proxy': upstream}}}},
              'AllowFunnel': {'${TS_CERT_DOMAIN}:443': False}}
@@ -272,6 +275,16 @@ def check_admission(items):
 
 def deploy(cfg, selected):
     access = load('access.json')
+    if 'sabnzbd' in selected:
+        if 'calibre-web' not in selected:
+            kube('get', 'namespace', 'calibre-web')
+        if 'sabnzbd' not in access:
+            access['sabnzbd'] = {'username': access['calibre-web']['username'],
+                                 'password': secrets.token_urlsafe(24)}
+        for name in ('api-key', 'nzb-key'):
+            access['sabnzbd'].setdefault(name, secrets.token_hex(16))
+        private_file(STATE / 'access.json', json.dumps(access, indent=2) + '\n')
+        private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
     fingerprints = {}
     items = objects(selected)
     install_admission(items)
@@ -285,6 +298,15 @@ def deploy(cfg, selected):
             values['import-password'] = access['import-password']
         else:
             values['domain'] = cfg['hostnames'][app] + '.' + cfg['dns_suffix']
+        if app == 'sabnzbd':
+            values.update({name: access[app][name] for name in ('api-key', 'nzb-key')})
+            if (STATE / 'usenet.json').exists():
+                provider = load('usenet.json')
+                for name in ('username', 'password'):
+                    value = provider.get('frugal_' + name)
+                    if not isinstance(value, str) or not value.strip():
+                        raise ValueError('usenet.json requires frugal_username and frugal_password')
+                    values['frugal-' + name] = value
         fingerprints[app] = hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
         apply([secret(app, 'credentials', values)])
         apply([gateway(cfg, app)])
@@ -293,10 +315,13 @@ def deploy(cfg, selected):
         vpn_items = list(vpn(cfg))
         apply(vpn_items)
         fingerprints['qbittorrent'] = hashlib.sha256((fingerprints['qbittorrent'] + json.dumps(vpn_items, sort_keys=True)).encode()).hexdigest()
-    if set(selected) == set(APPS):
+    if {'qbittorrent', 'calibre-web'} <= set(selected):
         apply([secret('qbittorrent', 'book-importer', {
             'qbt-username': access['qbittorrent']['username'], 'qbt-password': access['qbittorrent']['password'],
             'calibre-password': access['import-password']})])
+    if 'sabnzbd' in selected:
+        apply([secret('sabnzbd', 'book-importer', {
+            'sab-api-key': access['sabnzbd']['api-key'], 'calibre-password': access['import-password']})])
     check_admission(items)
     runtime = [obj for obj in items if obj['kind'] in ('Deployment', 'CronJob')]
     for obj in runtime:
@@ -318,18 +343,25 @@ def backup(cfg):
     """Stop writers and export application state and books outside the worker."""
     destination = STATE / 'backups' / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     destination.mkdir(mode=0o700, parents=True)
-    cron = json.loads(kube('-n', 'qbittorrent', 'get', 'cronjob', 'book-importer', '-o', 'json').stdout)
-    was_suspended = cron['spec'].get('suspend', False)
+    deployments = json.loads(kube('get', 'deployments', '--all-namespaces', '-o', 'json').stdout)['items']
+    apps = [app for app in APPS if any(obj['metadata']['name'] == app and
+            obj['metadata']['namespace'] == app for obj in deployments)]
+    suspended = {}
     replicas = {}
     maintenance = []
     try:
-        kube('-n', 'qbittorrent', 'patch', 'cronjob', 'book-importer', '--type=merge',
-             '-p', json.dumps({'spec': {'suspend': True}}))
-        jobs = json.loads(kube('-n', 'qbittorrent', 'get', 'jobs', '-o', 'json').stdout)['items']
-        for job in jobs:
-            if job['status'].get('active'):
-                kube('-n', 'qbittorrent', 'wait', '--for=condition=complete', 'job/' + job['metadata']['name'], '--timeout=120s')
-        for app in APPS:
+        for app in apps:
+            cron = kube('-n', app, 'get', 'cronjob', 'book-importer', '--ignore-not-found', '-o', 'json').stdout
+            if not cron:
+                continue
+            suspended[app] = json.loads(cron)['spec'].get('suspend', False)
+            kube('-n', app, 'patch', 'cronjob', 'book-importer', '--type=merge',
+                 '-p', json.dumps({'spec': {'suspend': True}}))
+            jobs = json.loads(kube('-n', app, 'get', 'jobs', '-o', 'json').stdout)['items']
+            for job in jobs:
+                if job['status'].get('active'):
+                    kube('-n', app, 'wait', '--for=condition=complete', 'job/' + job['metadata']['name'], '--timeout=120s')
+        for app in apps:
             deployment = json.loads(kube('-n', app, 'get', 'deployment', app, '-o', 'json').stdout)
             replicas[app] = deployment['spec']['replicas']
             kube('-n', app, 'scale', 'deployment/' + app, '--replicas=0')
@@ -337,14 +369,18 @@ def backup(cfg):
         for name in ('config.json', 'access.json', 'qbittorrent-wireguard.conf'):
             source = STATE / name if name != 'qbittorrent-wireguard.conf' else Path(cfg['wireguard_profile'])
             private_file(destination / name, source.read_text())
+        if (STATE / 'usenet.json').exists():
+            private_file(destination / 'usenet.json', (STATE / 'usenet.json').read_text())
         checksums = {}
-        for app in APPS:
+        for app in apps:
             names = ['credentials', 'tailscale-state']
             if app == 'qbittorrent':
                 names += ['wireguard', 'book-importer']
+            elif app == 'sabnzbd':
+                names += ['book-importer']
             state = kube('-n', app, 'get', 'secret', *names, '-o', 'json').stdout.decode()
             private_file(destination / (app + '-secrets.json'), state)
-            volumes = ('config', 'book-import-state') if app == 'qbittorrent' else ('config', 'library')
+            volumes = ('config', 'library') if app == 'calibre-web' else ('config', 'book-import-state')
             pod_name = 'state-backup-' + secrets.token_hex(3)
             pod = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': pod_name, 'namespace': app},
                 'spec': {'restartPolicy': 'Never', 'automountServiceAccountToken': False,
@@ -391,10 +427,11 @@ def backup(cfg):
                 if result.returncode:
                     restore_errors.append(f'{app}: wait for restored application readiness')
         if not restore_errors:
-            result = kube('-n', 'qbittorrent', 'patch', 'cronjob', 'book-importer', '--type=merge',
-                          '-p', json.dumps({'spec': {'suspend': was_suspended}}), check=False)
-            if result.returncode:
-                restore_errors.append('restore the book import schedule')
+            for app, was_suspended in suspended.items():
+                result = kube('-n', app, 'patch', 'cronjob', 'book-importer', '--type=merge',
+                              '-p', json.dumps({'spec': {'suspend': was_suspended}}), check=False)
+                if result.returncode:
+                    restore_errors.append(f'{app}: restore the book import schedule')
         if restore_errors:
             raise RuntimeError('Backup cleanup requires attention: ' + '; '.join(restore_errors))
     print(f'Verified application-state and book-library backup: {destination}')
@@ -410,7 +447,8 @@ def main():
         command = commands.add_parser(name)
         command.add_argument('app', nargs='?', choices=APPS)
     commands.add_parser('credentials')
-    commands.add_parser('import-books')
+    imports = commands.add_parser('import-books')
+    imports.add_argument('app', nargs='?', choices=('qbittorrent', 'sabnzbd'), default='qbittorrent')
     gutenberg = commands.add_parser('import-gutenberg')
     gutenberg.add_argument('--limit', type=int, default=200)
     gutenberg.add_argument('--dry-run', action='store_true')
@@ -426,14 +464,16 @@ def main():
         tailnet = json.loads(run(['tailscale', 'status', '--json']).stdout)['CurrentTailnet']
         cfg = {'dns_suffix': tailnet['MagicDNSSuffix'],
                'wireguard_profile': str(Path(args.wireguard_profile).expanduser().resolve()),
-               'hostnames': {'qbittorrent': 'qbittorrent', 'calibre-web': 'books'}}
+               'hostnames': {'qbittorrent': 'qbittorrent', 'calibre-web': 'books', 'sabnzbd': 'usenet'}}
         access = {app: {'username': args.username, 'password': secrets.token_urlsafe(24)} for app in APPS}
+        access['sabnzbd'].update({name: secrets.token_hex(16) for name in ('api-key', 'nzb-key')})
         access['import-password'] = secrets.token_urlsafe(32)
         private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
         private_file(STATE / 'access.json', json.dumps(access, indent=2) + '\n')
         print(f'Created protected configuration and generated credentials in {STATE}')
         return
     cfg = load('config.json')
+    cfg['hostnames'].setdefault('sabnzbd', 'usenet')
     selected = (args.app,) if getattr(args, 'app', None) else APPS
     if args.command == 'render':
         print(yaml.safe_dump_all(objects(selected), sort_keys=False))
@@ -445,13 +485,15 @@ def main():
     elif args.command == 'credentials':
         access = load('access.json')
         for app in APPS:
+            if app not in access:
+                continue
             print(f'{app}: https://{cfg["hostnames"][app]}.{cfg["dns_suffix"]}')
             print(f'  Username: {access[app]["username"]}\n  Password: {access[app]["password"]}')
     elif args.command == 'import-books':
         name = 'book-importer-manual-' + secrets.token_hex(3)
-        result = kube('-n', 'qbittorrent', 'create', 'job', '--from=cronjob/book-importer', name)
+        result = kube('-n', args.app, 'create', 'job', '--from=cronjob/book-importer', name)
         print(result.stdout.decode(), end='')
-        print(f'Follow with: kubectl -n qbittorrent logs -f job/{name}')
+        print(f'Follow with: kubectl -n {args.app} logs -f job/{name}')
     elif args.command == 'import-gutenberg':
         from gutenberg import import_books
         import_books(cfg, load('access.json'), STATE, ROOT,

@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sabnzbd
+resources: [stack.yaml, ../../components/edge, ../../integrations/books]
+configMapGenerator:
+  - name: sabnzbd-bootstrap
+    files: [bootstrap.py]
+patches:
+  - target: {kind: CronJob, name: book-importer}
+    patch: |-
+      - op: replace
+        path: /spec/jobTemplate/spec/template/spec/containers/0/env/0
+        value: {name: SABNZBD_URL, value: 'http://sabnzbd:8080'}
+  - target: {kind: NetworkPolicy, name: book-importer}
+    patch: |-
+      - op: replace
+        path: /spec/egress/0/to/0/podSelector/matchLabels/app
+        value: sabnzbd

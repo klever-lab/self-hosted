@@ -39,12 +39,12 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
    template is accepted before applying controllers. Images and new storage can
    take several minutes on first boot.
 
-The default hostnames are `qbittorrent` and `books` under your tailnet's `.ts.net`
+The default hostnames are `qbittorrent`, `books`, and `usenet` under your tailnet's `.ts.net`
 domain. Change them in the protected `config.json` **before initial enrollment**.
-Both applications are available only to the existing authorized tailnet operator;
-Funnel is disabled for both gateways. Calibre-Web also requires authentication,
+Applications are available only to the existing authorized tailnet operator;
+Funnel is disabled for every gateway. Calibre-Web also requires authentication,
 with anonymous browsing and public registration disabled. Its login is configured before startup.
-Both gateways have no grant to administer other tailnet devices.
+The gateways have no grant to administer other tailnet devices.
 
 qBittorrent serves VueTorrent at its existing HTTPS address, using the same login.
 The WebUI initializer downloads the pinned release through the VPN, verifies its
@@ -64,10 +64,47 @@ To deploy an application independently:
 ```bash
 ./self-hosted deploy qbittorrent
 ./self-hosted deploy calibre-web
+./self-hosted deploy sabnzbd
 ```
 
-Deploying both applications also installs the book-import integration. The shared
+Deploying qBittorrent and Calibre-Web together also installs their book-import integration.
+SABnzbd includes its own importer and expects Calibre-Web to be deployed already,
+or in the same deployment. The shared
 `components/edge` directory contains the userspace Tailscale gateway resources.
+
+## Usenet setup
+
+SABnzbd is served at `https://usenet.YOUR_TAILNET.ts.net` by default. It uses a
+separate generated administrator password, available through `./self-hosted credentials`.
+Its configuration, queue, completed downloads, and gateway identity survive deployments.
+
+Enter provider credentials in **Config → Servers**, or save `usenet.json` under the
+protected operator directory with mode `0600` before deploying SABnzbd:
+
+```json
+{"frugal_username": "YOUR_USERNAME", "frugal_password": "YOUR_PASSWORD"}
+```
+
+The initializer configures `news.frugalusenet.com` at priority 0 and
+`bonus.frugalusenet.com` at priority 1, both with verified TLS on port 563.
+Without local provider credentials these presets remain disabled until configured
+in the UI. Saved provider and RSS settings are retained on restart. When
+`usenet.json` is present it is authoritative for the two Frugal logins.
+An optional `althub_api_key` can be retained there for later indexer integration;
+manually uploading an NZB to SABnzbd does not need that key.
+
+Deploy and check SABnzbd independently with:
+
+```bash
+./self-hosted render sabnzbd > /tmp/sabnzbd.yaml
+./self-hosted deploy sabnzbd
+./self-hosted status sabnzbd
+```
+
+Search the indexer, download an NZB, then add it to SABnzbd under the `books`
+category. Successful, unpacked books are uploaded into the existing Calibre-Web
+library automatically. See [Usenet operation](docs/usenet.md) for the supported
+formats, history requirements and optional cart RSS workflow.
 
 To change qBittorrent's VPN server, replace the profile referenced by
 `wireguard_profile` in the protected `config.json`, keeping it outside the checkout

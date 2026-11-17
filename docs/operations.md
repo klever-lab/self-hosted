@@ -4,7 +4,7 @@ Run `./self-hosted status` for pods and volumes. Kubernetes chooses workers with
 hostname selectors; existing local volumes still keep their consumers on the
 owning worker. The gateways can restart on other workers using their existing
 Kubernetes identity Secrets. Guaranine's control plane remains dedicated to platform work.
-Both applications use single replicas and Recreate deployments so updates do not
+Applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
 The qBittorrent pod runs Gluetun (`vpn` sidecar) in kernel WireGuard mode (`wg0`)
@@ -64,7 +64,7 @@ long-term arrangement; no static IP has been purchased as part of this change.
 
 ## Private access
 
-Both HTTPS gateways disable Tailscale Funnel and accept connections only through
+All HTTPS gateways disable Tailscale Funnel and accept connections only through
 the tailnet's access policy. Guaranine owns the policy and gives these gateways no
 Funnel permission. Deployments preserve the existing gateway identities and hostnames.
 Devices without an authorized Tailscale connection cannot reach these applications;
@@ -74,7 +74,8 @@ see [Kobo access requirements](kobo.md) before configuring a reader.
 
 qBittorrent requests 1 GiB for configuration and 200 GiB for downloads. Its import
 ledger requests 1 GiB. Calibre-Web requests 1 GiB for configuration and 20 GiB for
-the library. OpenEBS retains volumes on claim deletion. These are declarations,
+the library. SABnzbd requests 1 GiB each for configuration and its import ledger,
+and 20 GiB for downloads. OpenEBS retains volumes on claim deletion. These are declarations,
 not enforced disk quotas; monitor the worker's free space. The volumes are local
 and do not follow workloads to another worker. See Guaranine's
 [storage guide](https://github.com/klever-lab/guaranine/blob/main/docs/storage.md).
@@ -85,11 +86,13 @@ and do not follow workloads to another worker. See Guaranine's
 ./self-hosted backup
 ```
 
-This suspends new imports, waits for active importer jobs, briefly stops both
+This suspends each deployed downloader's imports, waits for active importer jobs, briefly stops
 application writers, and streams their configuration, import ledger, and Calibre
 book library to protected operator storage. Gateway identities, application Secrets,
-operator configuration, and the VPN profile are included. Application replica
-counts and the import schedule are restored afterward.
+operator configuration, optional Usenet credentials, and the VPN profile are included.
+SABnzbd's retained configuration includes its provider credentials and private RSS
+URLs. Only deployed applications are exported. Application replica counts and
+each import schedule are restored afterward.
 
 Successful backups contain `manifest.json` with archive SHA-256 checksums. Every
 archive member is read to check archive integrity. Incomplete exports retain a
@@ -116,8 +119,8 @@ Protecting a PVC with Retain does not produce an independent backup.
 5. Restore protected operator configuration, update its worker setting if needed,
    then redeploy and check authenticated login, library contents, and Kobo sync.
 
-Redownload excluded torrent payloads or restore a separate copy before expecting
-old seeding state to work. Do not delete retained claims or worker directories as
+Redownload excluded Usenet payloads as needed. Restore torrent payloads or
+redownload them before expecting old seeding state to work. Do not delete retained claims or worker directories as
 an update procedure.
 
 ## Dependency pins and empty library template

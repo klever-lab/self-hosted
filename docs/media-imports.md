@@ -26,6 +26,12 @@ Original files and torrents stay available for seeding. The SHA-256 ledger preve
 repeat imports of identical files, including files found in multiple torrents.
 Deleting a library book does not clear its ledger entry or import it again.
 
+SABnzbd uses the same uploader in its own namespace, with a read-only mount of its
+download volume and a separate durable ledger. It reads only successful `books`
+jobs after repair and extraction, and confines files to `/downloads/complete/books`.
+Each downloader deduplicates its own files; their ledgers do not deduplicate
+identical downloads across the two services. See [Usenet operation](usenet.md).
+
 Run an import immediately with:
 
 ```bash
