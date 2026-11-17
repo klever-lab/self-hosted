@@ -17,43 +17,75 @@ service. Deploying this gateway does not change the provider's account terms.
 
 ## Client management
 
-From the repository root, create and activate a client:
+Invite a friend from the repository root and share the link printed by the CLI.
+Cloudflare sends the email code when they sign in.
 
 ```bash
-./friends-vpn add friend-phone
-./friends-vpn deploy
-./friends-vpn list
+./friends-vpn invite friend@example.com
 ```
 
-The CLI prints the private configuration's **path**, never its contents. Files
-live under `${SELF_HOSTED_OPERATOR_DIR:-~/.local/state/self-hosted}/friends-vpn/`
-with mode `0600` in a mode-`0700` directory. Give each device its own configuration;
-simultaneous use of one WireGuard key on multiple devices disrupts connections.
-`add` stages access locally; `deploy` activates it. A deployment briefly
-recreates the single VPN Pod. Existing peer keys and the server identity persist.
-An existing connection can retain its previous UDP mapping briefly after a Pod
-replacement; toggle the client's tunnel if it does not reconnect promptly.
+The same dedicated allowlist is editable in the Cloudflare Access dashboard.
+Repeated invitations for the same address leave one rule. Work on the list from
+one admin session at a time, since Cloudflare updates the whole set of rules.
 
-To remove a device immediately:
+At [vpn.bahasadri.com](https://vpn.bahasadri.com), the friend names each device
+and selects **Create and activate**. **Ready to import** means the gateway
+confirmed activation. They can download the `.conf` on the device that needs
+it or show a QR code for the WireGuard app on another device. Import it in the
+app and enable the tunnel. Creating profiles requires a current browser that
+supports Web Crypto X25519.
+
+Each person sees their own devices. **Replace** activates a new profile and
+revokes the old one together. **Revoke** removes a lost or retired device.
+**Retry activation** resumes the same enrollment after a temporary error. The
+browser holds the private key while setup is in progress and clears it when the
+friend clicks **Done**. If the setup tab is closed before import, replace the
+profile to issue a new key. Treat both a downloaded config and its QR code as
+credentials. Give each device its own config since sharing a key disrupts
+connections.
+
+The CLI uses the same inventory. Use the device ID shown by `list` for
+individual administration. Profiles issued before the portal retain their
+existing keys and work with their existing files. Assign the owner to show a
+legacy device in their portal and include it in email-wide revocation.
 
 ```bash
+./friends-vpn add friend-phone --email friend@example.com
+./friends-vpn assign existing-laptop friend@example.com
+./friends-vpn list --email friend@example.com
 ./friends-vpn revoke friend-phone
+./friends-vpn revoke --email friend@example.com
+./friends-vpn offboard friend@example.com
 ```
 
-Revocation removes the peer from the configuration and redeploys. If it was the
-last client, the CLI stops the service and waits for its Pod to disappear. A
-failure applying the change is reported; resolve it before assuming access is
-revoked. The old export is renamed with `.conf.revoked`. Previously allocated
-addresses are not reused. No other client's key changes.
+`add` prints the path of the private export. Files are mode `0600` under
+`${SELF_HOSTED_OPERATOR_DIR:-~/.local/state/self-hosted}/friends-vpn/`.
+Revocation archives a CLI export as `.conf.revoked`. Adds and revocations
+update the running gateway and preserve other peers' connections, including
+when the last peer is removed. Previously allocated addresses are retained to
+prevent reuse while old flows are draining. The current address pool supports
+253 cumulative allocations. Retry the same command if gateway confirmation
+times out.
+
+`offboard` blocks the email at the portal, removes its VPN profiles, removes its
+Access invitation, and ends its existing Access sessions for the Cloudflare
+account. `revoke --email` only revokes the profiles. Use `invite` to restore
+portal access to a previously offboarded email. To complete offboarding through
+the Cloudflare dashboard, run `offboard` after removing the email from the policy.
 
 ## Traffic and isolation
 
-The `friends-vpn` namespace uses restricted Pod Security. Digest-pinned upstream
-[sing-box](https://sing-box.sagernet.org/configuration/endpoint/wireguard/)
-provides two WireGuard endpoints in userspace as UID/GID 1000, with no added
-capabilities, host namespaces, TUN device, service-account token, or writable
-root filesystem. The Kubernetes Secret contains generated configuration;
-credentials and client exports are never stored in Git.
+The `friends-vpn` namespace uses restricted Pod Security. The gateway builds
+from pinned [sing-box](https://sing-box.sagernet.org/configuration/endpoint/wireguard/)
+with a small patch that applies peer changes to the running userspace WireGuard
+interface. The gateway and portal images are pinned by digest. Containers run
+as UID/GID 1000 with no added capabilities, host namespaces, TUN devices, or
+writable root filesystems. Gateway and portal service accounts can access only
+the shared device Secret and gateway acknowledgement through their scoped
+roles. The server and provider private keys are in the gateway's separate
+configuration Secret. The portal receives only the verified Access email and
+the devices' public keys for provisioning. Client private keys stay in the
+browser or in protected CLI exports.
 
 The public NodePort forwards encrypted traffic from the controller to a worker
 over the cluster's existing Flannel-over-Tailscale connection. The controller
@@ -61,9 +93,10 @@ runs no application Pod. Guaranine owns the controller's narrow public ingress
 exception; this repository owns the Service and workload.
 
 Authenticated client TCP and UDP traffic is routed only into the dedicated
-Windscribe endpoint. There is no direct-internet outbound or fallback. Network
-policy permits new egress only to the resolved Windscribe IPv4/UDP endpoint;
-responses to admitted WireGuard client traffic use connection tracking.
+Windscribe endpoint. The gateway network policies allow the resolved Windscribe
+IPv4/UDP endpoint and the Kubernetes API used for peer updates. The Kubernetes
+API is used by the gateway process to reconcile peer state. Responses to
+admitted WireGuard client traffic use connection tracking.
 The application also rejects private, loopback, link-local, CGNAT and multicast
 destinations, other VPN clients, and traffic initiated through the upstream
 endpoint. This keeps cluster, tailnet, metadata and LAN destinations unavailable.
@@ -87,23 +120,37 @@ service.
 
 ## State and recovery
 
-Back up the protected `friends-vpn/` directory and its separate Windscribe profile
-to private encrypted storage. They contain the server private key, client peer
-keys and exported client secrets. The media application's `./self-hosted backup`
-does not include this separate service. There is no PVC or mutable in-Pod state.
-Keep only one deployment using the Windscribe profile at a time.
+Run `./friends-vpn backup` to export the current shared inventory, then back up
+the protected `friends-vpn/` directory and separate Windscribe profile to
+encrypted storage. These files hold server credentials, the device inventory,
+and manual CLI exports. The media application's backup covers the media apps.
+Keep only one gateway using the Windscribe profile at a time.
 
-Restore these files with their original private permissions, keep the existing
-server and peer keys, and follow the deployment procedure in SETUP.md. If the
+If the inventory Secret is lost, restore these files with their original private
+permissions and run `./friends-vpn deploy --restore-inventory /private/path/inventory.json`.
+Use the latest snapshot and reconcile any subsequent revocations before bringing
+the portal back. Restore preserves the existing server and peer keys. If the
 controller's public address changes, update `endpoint` in protected
 `friends-vpn/config.json` and the `Endpoint` line in each client export; import
-the updated file on each device. Existing keys do not need replacement.
+the updated file on each device. Then deploy to update the portal's profile
+endpoint. Existing keys can still be used.
 
 Changing the profile's endpoint hostname or port makes the next deployment
 resolve a fresh address and update network policy and tunnel configuration
 together. The selected address is cached in protected configuration. To refresh
 the same hostname deliberately, remove `provider_address` there before deploying.
 Keep changes in the repository before applying them to Kubernetes.
+
+Portal and connector restarts affect enrollment and device management. The
+gateway continues to carry enrolled WireGuard traffic independently. The
+first switch from stock sing-box to the live updater replaces the gateway Pod
+once. If a connection retains the previous UDP mapping after that migration,
+toggle that device's WireGuard tunnel.
+
+The [image workflow](../.github/workflows/friends-vpn-image.yml) runs the
+userspace WireGuard test and publishes the gateway and portal binary. Pin its
+output digest in both application manifests when upgrading. The source for the
+gateway includes the upstream version and [peer update patch](../apps/friends-vpn/live/sing-box.patch).
 
 ## Live verification
 

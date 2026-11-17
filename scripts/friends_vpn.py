@@ -3,6 +3,8 @@
 import argparse
 import base64
 import configparser
+from datetime import datetime, timezone
+import fcntl
 import hashlib
 import ipaddress
 import json
@@ -10,7 +12,11 @@ import os
 from pathlib import Path
 import re
 import socket
+import tempfile
+from uuid import uuid4
 
+import friends_vpn_cloudflare as cloudflare
+import friends_vpn_inventory as devices
 import manage
 
 NAMESPACE = 'friends-vpn'
@@ -36,8 +42,20 @@ def read_state():
     return json.loads(read_private(STATE))
 
 
+def write_private(path, content):
+    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, delete=False) as output:
+        temporary = Path(output.name)
+        try:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
 def save(state):
-    manage.private_file(STATE, json.dumps(state, indent=2) + '\n')
+    write_private(STATE, json.dumps(state, indent=2) + '\n')
 
 
 def key(value):
@@ -138,15 +156,70 @@ def egress_policy(provider, address):
                                  'ports': [{'protocol': 'UDP', 'port': provider['port']}]}]}}
 
 
-def deploy(state):
-    if not state['peers']:
-        raise ValueError('Add at least one client before deploying')
+def api_egress_policy():
+    service = json.loads(manage.kube('-n', 'default', 'get', 'svc', 'kubernetes', '-o', 'json').stdout)
+    slices = json.loads(manage.kube('-n', 'default', 'get', 'endpointslice',
+                                   '-l', 'kubernetes.io/service-name=kubernetes', '-o', 'json').stdout)
+
+    def target(address, port):
+        network = str(ipaddress.ip_network(address))
+        return {'to': [{'ipBlock': {'cidr': network}}], 'ports': [{'protocol': 'TCP', 'port': port}]}
+
+    targets = [target(service['spec']['clusterIP'], next(port['port'] for port in service['spec']['ports']
+                                                       if port['name'] == 'https'))]
+    # Account for Service DNAT before or after policy evaluation.
+    for item in slices['items']:
+        for port in item['ports']:
+            if port['name'] == 'https':
+                targets.extend(target(address, port['port']) for endpoint in item['endpoints']
+                               for address in endpoint['addresses'])
+    return {'apiVersion': 'networking.k8s.io/v1', 'kind': 'NetworkPolicy',
+            'metadata': {'name': 'kubernetes-inventory', 'namespace': NAMESPACE},
+            'spec': {'podSelector': {'matchExpressions': [{'key': 'app', 'operator': 'In',
+                                                           'values': [NAMESPACE, NAMESPACE + '-portal']}]},
+                     'policyTypes': ['Egress'], 'egress': targets}}
+
+
+def seed_inventory(state, restore):
+    server_public = public_key(state['private_key'])
+    current, _ = devices.read(optional=True)
+    if current is not None and restore:
+        raise ValueError('The shared inventory already exists')
+    if current is None:
+        if restore:
+            current = json.loads(read_private(restore))
+        elif state.get('inventory_migrated'):
+            raise ValueError('The shared inventory is missing. Restore a protected inventory backup.')
+        else:
+            current = {'peers': {name: {**peer, 'name': name} for name, peer in state['peers'].items()},
+                       'next_peer': state['next_peer'], 'retired': {}, 'blocked_emails': {},
+                       'server_public_key': server_public, 'endpoint': state['endpoint']}
+        if current['server_public_key'] != server_public:
+            raise ValueError('The inventory belongs to a different WireGuard server key')
+        current['revision'] = uuid4().hex
+        current['endpoint'] = state['endpoint']
+        devices.seed(current)
+    if current['server_public_key'] != server_public:
+        raise ValueError('The inventory belongs to a different WireGuard server key')
+    if current['endpoint'] != state['endpoint']:
+        def set_endpoint(inventory):
+            inventory['endpoint'] = state['endpoint']
+            return True
+
+        devices.update(set_endpoint)
+    state['inventory_migrated'] = True
+    save(state)
+
+
+def deploy(state, restore=None):
     provider = windscribe_profile(state['windscribe_profile'])
     address = provider_address(provider, state)
-    config = json.dumps(configuration(state, provider, address), sort_keys=True)
+    config = json.dumps(configuration({**state, 'peers': {}}, provider, address), sort_keys=True)
     items = manage.objects((NAMESPACE,))
     items.append(egress_policy(provider, address))
+    items.append(api_egress_policy())
     manage.apply([obj for obj in items if obj['kind'] == 'Namespace'])
+    seed_inventory(state, restore)
     manage.apply([obj for obj in items if obj['kind'] not in ('Namespace', 'Deployment')])
     manage.apply([manage.secret(NAMESPACE, NAMESPACE, {'config.json': config})])
     runtime = [obj for obj in items if obj['kind'] == 'Deployment']
@@ -162,53 +235,205 @@ def deploy(state):
     print(f'Public WireGuard endpoint: {state["endpoint"]}')
 
 
-def add_peer(state, name):
+def profile_text(inventory, peer, private):
+    return '\n'.join([
+        '[Interface]', f'PrivateKey = {private}', 'Address = ' + ', '.join(peer['addresses']),
+        'DNS = 1.1.1.1', 'MTU = 1280', '', '[Peer]',
+        'PublicKey = ' + inventory['server_public_key'], 'PresharedKey = ' + peer['preshared_key'],
+        'Endpoint = ' + inventory['endpoint'], 'AllowedIPs = 0.0.0.0/0, ::/0', 'PersistentKeepalive = 25', '',
+    ])
+
+
+def new_key_pair():
+    return {'private': generate_key(), 'preshared_key': manage.run(['wg', 'genpsk']).stdout.decode().strip()}
+
+
+def client_name(name):
     if not re.fullmatch(r'[a-z][a-z0-9-]{0,31}', name):
         raise ValueError('Use a lowercase client name with letters, numbers, and hyphens')
-    if name in state['peers']:
-        raise ValueError('That client already exists; each device needs its own profile')
-    number = state['next_peer']
-    if not 2 <= number <= 254:
-        raise ValueError('This VPN supports at most 253 allocated client addresses')
-    private = generate_key()
-    preshared = manage.run(['wg', 'genpsk']).stdout.decode().strip()
-    addresses = [f'10.76.0.{number}/32', f'fd76:6672:6965::{number:x}/128']
-    state['peers'][name] = {'public_key': public_key(private), 'preshared_key': preshared, 'addresses': addresses}
-    state['next_peer'] += 1
-    text = '\n'.join([
-        '[Interface]', f'PrivateKey = {private}', 'Address = ' + ', '.join(addresses),
-        'DNS = 1.1.1.1', 'MTU = 1280', '', '[Peer]',
-        'PublicKey = ' + public_key(state['private_key']), 'PresharedKey = ' + preshared,
-        'Endpoint = ' + state['endpoint'], 'AllowedIPs = 0.0.0.0/0, ::/0', 'PersistentKeepalive = 25', '',
-    ])
+
+
+def add_peer(state, name, email=''):
+    client_name(name)
     path = DIRECTORY / (name + '.conf')
-    if path.exists():
-        raise ValueError('An exported profile with that name already exists')
-    manage.private_file(path, text)
+    if name in state['peers'] or path.exists() or path.with_suffix('.conf.revoked').exists():
+        raise ValueError('That client already exists; each device needs its own profile')
+    keys = new_key_pair()
+    peer = {'public_key': public_key(keys['private']), 'preshared_key': keys['preshared_key'],
+            'addresses': devices.addresses(state['next_peer']), 'email': email}
+    state['peers'][name] = peer
+    state['next_peer'] += 1
+    write_private(path, profile_text({**state, 'server_public_key': public_key(state['private_key'])}, peer, keys['private']))
     save(state)
     print(f'Private WireGuard client profile: {path}')
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    commands = parser.add_subparsers(dest='command', required=True)
-    init = commands.add_parser('init')
-    init.add_argument('--windscribe-profile', required=True)
-    init.add_argument('--endpoint', required=True)
-    for name in ('add', 'revoke'):
-        command = commands.add_parser(name)
-        command.add_argument('name')
-    for name in ('deploy', 'list', 'status', 'render'):
-        commands.add_parser(name)
-    args = parser.parse_args()
-    os.umask(0o077)
-    if DIRECTORY.resolve().is_relative_to(manage.ROOT):
-        raise ValueError('Operator storage must be outside Git')
-    DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
-    DIRECTORY.chmod(0o700)
-    if args.command == 'render':
+def add_live_peer(name, email):
+    client_name(name)
+    path = DIRECTORY / (name + '.conf')
+    pending = DIRECTORY / ('.' + name + '.pending.json')
+    if pending.exists():
+        keys = json.loads(read_private(pending))
+        if keys['email'] != email:
+            raise ValueError('Retry this pending profile with its original email')
+    else:
+        inventory, _ = devices.read()
+        if name in inventory['peers'] or name in inventory['retired'] or path.exists():
+            raise ValueError('That device ID already exists. Choose a new name.')
+        if inventory['blocked_emails'].get(email):
+            raise ValueError('Invite this email before assigning it a new device')
+        devices.addresses(inventory['next_peer'])
+        keys = {**new_key_pair(), 'email': email}
+        write_private(pending, json.dumps(keys))
+    public = public_key(keys['private'])
+
+    def enroll(inventory):
+        if inventory['blocked_emails'].get(email):
+            raise ValueError('Invite this email before assigning it a new device')
+        existing = inventory['peers'].get(name)
+        if existing and existing['public_key'] == public and existing.get('email', '') == email:
+            return False
+        if existing or name in inventory['retired']:
+            raise ValueError('That device ID already exists. Choose a new name.')
+        inventory['peers'][name] = {'name': name, 'email': email, 'public_key': public,
+                                    'preshared_key': keys['preshared_key'],
+                                    'addresses': devices.addresses(inventory['next_peer'])}
+        inventory['next_peer'] += 1
+        return True
+
+    inventory = devices.update(enroll)
+    devices.wait_for_gateway(lambda current: current['peers'].get(name, {}).get('public_key') == public)
+    write_private(path, profile_text(inventory, inventory['peers'][name], keys['private']))
+    pending.unlink()
+    print(f'Active WireGuard client profile: {path}')
+
+
+def archive_profile(identity):
+    if re.fullmatch(r'[a-z][a-z0-9-]{0,31}', identity):
+        path = DIRECTORY / (identity + '.conf')
+        if path.exists():
+            path.rename(path.with_suffix('.conf.revoked'))
+        (DIRECTORY / ('.' + identity + '.pending.json')).unlink(missing_ok=True)
+
+
+def revoke_live(name=None, *, email='', block=False):
+    def matches(identity, peer):
+        return identity == name if name else peer.get('email') == email
+
+    if name and not re.fullmatch(r'[a-z0-9-]{1,36}', name):
+        raise ValueError('Use the device ID shown by friends-vpn list')
+
+    def remove(inventory):
+        if name and name not in inventory['peers'] and name not in inventory['retired']:
+            raise ValueError('Unknown device ID')
+        selected = [identity for identity, peer in inventory['peers'].items() if matches(identity, peer)]
+        changed = bool(selected)
+        if block and not inventory['blocked_emails'].get(email):
+            inventory['blocked_emails'][email] = True
+            changed = True
+        for identity in selected:
+            devices.retire(inventory, identity)
+        return changed
+
+    inventory = devices.update(remove)
+    devices.wait_for_gateway(lambda current: (not block or current['blocked_emails'].get(email)) and
+                             not any(matches(identity, peer) for identity, peer in current['peers'].items()))
+    for identity, owner in inventory['retired'].items():
+        if matches(identity, {'email': owner}):
+            archive_profile(identity)
+
+
+def assign(name, email):
+    def assign_email(inventory):
+        if name not in inventory['peers']:
+            raise ValueError('Unknown device ID')
+        if inventory['blocked_emails'].get(email):
+            raise ValueError('Invite this email before assigning it a device')
+        peer = inventory['peers'][name]
+        if peer.get('email') == email:
+            return False
+        peer['email'] = email
+        return True
+
+    devices.update(assign_email)
+    print(f'Assigned {name} to {email}.')
+
+
+def cloudflare_api():
+    token = DIRECTORY / 'cloudflare-api-token'
+    if not token.exists():
+        raise ValueError(f'Save a scoped Cloudflare API token with mode 0600 at {token}')
+    return cloudflare.Cloudflare(read_private(token))
+
+
+def cloudflare_settings():
+    path = DIRECTORY / 'cloudflare.json'
+    if not path.exists():
+        raise ValueError('Run ./friends-vpn setup-portal to configure Cloudflare first')
+    return json.loads(read_private(path))
+
+
+def invite(email):
+    if email == cloudflare.DISABLED_EMAIL:
+        raise ValueError('Use a reachable email address')
+    devices.read()
+    changed = cloudflare.change_email(cloudflare_api(), cloudflare_settings(), email, allow=True)
+
+    def unblock(inventory):
+        return bool(inventory['blocked_emails'].pop(email, None))
+
+    devices.update(unblock)
+    print(f'{"Invited" if changed else "Already invited"} {email}. Share {cloudflare.URL}.')
+
+
+def deploy_portal():
+    devices.read()
+    config = cloudflare_settings()
+    settings = {'issuer': config['issuer'], 'audience': config['audience'],
+                'token': read_private(DIRECTORY / 'cloudflare-tunnel-token').strip()}
+    items = manage.objects((NAMESPACE + '/portal',))
+    manage.apply([item for item in items if item['kind'] != 'Deployment'])
+    manage.apply([manage.secret(NAMESPACE, NAMESPACE + '-access', settings)])
+    runtime = [item for item in items if item['kind'] == 'Deployment']
+    runtime[0]['spec']['template']['metadata']['annotations'] = {
+        'self-hosted/config-sha256': hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()}
+    manage.check_admission(runtime)
+    manage.apply(runtime)
+    manage.kube('-n', NAMESPACE, 'rollout', 'status', 'deployment/friends-vpn-portal', '--timeout=120s')
+    print(f'Friends VPN portal: {cloudflare.URL}')
+
+
+def command(args):
+    if args.command in ('render', 'render-portal'):
         import yaml
-        print(yaml.safe_dump_all(manage.objects((NAMESPACE,)), sort_keys=False))
+        app = NAMESPACE + '/portal' if args.command == 'render-portal' else NAMESPACE
+        print(yaml.safe_dump_all(manage.objects((app,)), sort_keys=False))
+        return
+    if args.command == 'setup-portal':
+        config, token = cloudflare.setup(cloudflare_api())
+        write_private(DIRECTORY / 'cloudflare.json', json.dumps(config, indent=2) + '\n')
+        write_private(DIRECTORY / 'cloudflare-tunnel-token', token + '\n')
+        print(f'Configured Cloudflare Access and Tunnel for {cloudflare.URL}.')
+        return
+    if args.command == 'deploy-portal':
+        deploy_portal()
+        return
+    if args.command == 'invite':
+        invite(devices.email_address(args.email))
+        return
+    if args.command == 'offboard':
+        email = devices.email_address(args.email)
+        api, config = cloudflare_api(), cloudflare_settings()
+        revoke_live(email=email, block=True)
+        cloudflare.change_email(api, config, email, allow=False)
+        cloudflare.revoke_sessions(api, config, email)
+        print(f'Removed {email} from Access and revoked their VPN profiles.')
+        return
+    if args.command == 'assign':
+        assign(args.name, devices.email_address(args.email))
+        return
+    if args.command == 'status':
+        print(manage.kube('-n', NAMESPACE, 'get', 'deploy,pod,svc,networkpolicy', '-o', 'wide').stdout.decode())
         return
     if args.command == 'init':
         if STATE.exists():
@@ -221,31 +446,74 @@ def main():
         return
     state = read_state()
     if args.command == 'deploy':
-        deploy(state)
+        deploy(state, args.restore_inventory)
     elif args.command == 'add':
-        add_peer(state, args.name)
-        print('Run ./friends-vpn deploy to activate this client.')
-    elif args.command == 'revoke':
-        if args.name not in state['peers']:
-            raise ValueError('Unknown client')
-        del state['peers'][args.name]
-        save(state)
-        path = DIRECTORY / (args.name + '.conf')
-        if path.exists():
-            path.rename(path.with_suffix('.conf.revoked'))
-        # Revocation must remove the live peer, including when the last is removed.
-        if state['peers']:
-            deploy(state)
+        email = devices.email_address(args.email) if args.email else ''
+        if state.get('inventory_migrated'):
+            add_live_peer(args.name, email)
         else:
-            manage.kube('-n', NAMESPACE, 'scale', 'deployment/' + NAMESPACE, '--replicas=0')
-            manage.kube('-n', NAMESPACE, 'wait', '--for=delete', 'pod', '-l', 'app=' + NAMESPACE, '--timeout=90s')
-        print(f'Revoked {args.name}.')
+            add_peer(state, args.name, email)
+            print('Run ./friends-vpn deploy to activate this client.')
+    elif args.command == 'revoke':
+        if bool(args.name) == bool(args.email):
+            raise ValueError('Enter a device ID or use --email to revoke all its profiles')
+        email = devices.email_address(args.email) if args.email else ''
+        if not state.get('inventory_migrated'):
+            raise ValueError('Run ./friends-vpn deploy once to migrate the gateway before revoking devices')
+        revoke_live(args.name, email=email)
+        print(f'Revoked {args.name or email}.')
     elif args.command == 'list':
-        print('Public endpoint: ' + state['endpoint'])
-        for name, peer in state['peers'].items():
-            print(name + ': ' + ', '.join(peer['addresses']))
-    elif args.command == 'status':
-        print(manage.kube('-n', NAMESPACE, 'get', 'deploy,pod,svc,networkpolicy', '-o', 'wide').stdout.decode())
+        inventory = devices.read()[0] if state.get('inventory_migrated') else state
+        email = devices.email_address(args.email) if args.email else ''
+        print('Public endpoint: ' + inventory['endpoint'])
+        for identity, peer in sorted(inventory['peers'].items()):
+            owner = peer.get('email', '')
+            if not email or email == owner:
+                print(f'{identity}\t{peer.get("name", identity)}\t{owner or "Unassigned"}\t{", ".join(peer["addresses"])}')
+    elif args.command == 'backup':
+        inventory, _ = devices.read()
+        destination = DIRECTORY / 'backups' / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
+        destination.mkdir(mode=0o700, parents=True)
+        write_private(destination / 'inventory.json', json.dumps(inventory, indent=2) + '\n')
+        print(f'Private inventory snapshot: {destination / "inventory.json"}')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest='command', required=True)
+    init = commands.add_parser('init', help='create a protected WireGuard server identity')
+    init.add_argument('--windscribe-profile', required=True)
+    init.add_argument('--endpoint', required=True)
+    deploy_command = commands.add_parser('deploy', help='install or upgrade the VPN gateway')
+    deploy_command.add_argument('--restore-inventory')
+    add = commands.add_parser('add', help='create a private device export')
+    add.add_argument('name')
+    add.add_argument('--email')
+    revoke = commands.add_parser('revoke', help='revoke one device or all devices for an email')
+    revoke.add_argument('name', nargs='?')
+    revoke.add_argument('--email')
+    commands.add_parser('list', help='list devices and their owners').add_argument('--email')
+    association = commands.add_parser('assign', help='associate an existing device with its owner')
+    association.add_argument('name')
+    association.add_argument('email')
+    commands.add_parser('invite', help='add an exact email to Cloudflare Access').add_argument('email')
+    commands.add_parser('offboard', help='remove the email, revoke profiles and end Access sessions').add_argument('email')
+    commands.add_parser('setup-portal', help='configure Cloudflare Access, Tunnel and DNS')
+    commands.add_parser('deploy-portal', help='deploy the website and Tunnel connector')
+    for name in ('backup', 'status', 'render', 'render-portal'):
+        commands.add_parser(name)
+    args = parser.parse_args()
+    os.umask(0o077)
+    if DIRECTORY.resolve().is_relative_to(manage.ROOT):
+        parser.error('Operator storage must be outside Git')
+    DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
+    DIRECTORY.chmod(0o700)
+    with (DIRECTORY / '.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            command(args)
+        except (ValueError, RuntimeError, OSError) as error:
+            parser.error(str(error))
 
 
 if __name__ == '__main__':

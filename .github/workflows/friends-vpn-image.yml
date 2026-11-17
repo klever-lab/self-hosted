@@ -2,7 +2,7 @@ name: Friends VPN image
 
 on:
   push:
-    branches: [main, friends-vpn-portal]
+    branches: [main]
     paths: ['apps/friends-vpn/live/**', '.github/workflows/friends-vpn-image.yml']
   workflow_dispatch:
 

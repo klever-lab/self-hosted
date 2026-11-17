@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: friends-vpn-portal}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: friends-vpn-portal}
+rules:
+  - {apiGroups: [''], resources: [secrets], resourceNames: [friends-vpn-peers], verbs: [get, patch]}
+  - {apiGroups: [''], resources: [configmaps], resourceNames: [friends-vpn-active], verbs: [get]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: friends-vpn-portal}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: friends-vpn-portal}
+subjects: [{kind: ServiceAccount, name: friends-vpn-portal, namespace: friends-vpn}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: friends-vpn-portal}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: friends-vpn-portal}}
+  template:
+    metadata: {labels: {app: friends-vpn-portal}}
+    spec:
+      serviceAccountName: friends-vpn-portal
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: portal
+          image: ghcr.io/klever-lab/self-hosted-friends-vpn@sha256:25e879df506d0a6af45bc09f64985f662ab58b6d28442f1c5168e7c88110d890
+          args: [portal]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          env:
+            - name: ACCESS_ISSUER
+              valueFrom: {secretKeyRef: {name: friends-vpn-access, key: issuer}}
+            - name: ACCESS_AUDIENCE
+              valueFrom: {secretKeyRef: {name: friends-vpn-access, key: audience}}
+          readinessProbe:
+            exec: {command: [/friends-vpn, portal-ready]}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          volumeMounts:
+            - {name: service-account, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+        - name: cloudflared
+          image: docker.io/cloudflare/cloudflared:2026.11.0@sha256:b94b96edf2c9c4360f8879c8580cfaa99077f19c849ec595ca2f711b27d4f344
+          args: [tunnel, --no-autoupdate, --edge-ip-version, '4', --protocol, http2, --metrics, '0.0.0.0:2000', run, --token-file, /etc/cloudflare/token]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /ready, port: 2000}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          volumeMounts:
+            - {name: tunnel, mountPath: /etc/cloudflare, readOnly: true}
+      volumes:
+        - name: service-account
+          projected:
+            defaultMode: 0440
+            sources:
+              - serviceAccountToken: {path: token, expirationSeconds: 3600}
+              - configMap:
+                  name: kube-root-ca.crt
+                  items: [{key: ca.crt, path: ca.crt}]
+        - name: tunnel
+          secret:
+            secretName: friends-vpn-access
+            defaultMode: 0440
+            items: [{key: token, path: token}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: friends-vpn-portal-egress}
+spec:
+  podSelector: {matchLabels: {app: friends-vpn-portal}}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+          podSelector: {matchLabels: {k8s-app: kube-dns}}
+      ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
+    # Cloudflare regional IPv4 edges for the HTTP/2 tunnel.
+    - to:
+        - ipBlock: {cidr: 198.41.192.0/24}
+        - ipBlock: {cidr: 198.41.200.0/24}
+      ports: [{protocol: TCP, port: 7844}]
+    # Cloudflare HTTPS edge addresses for the Access signing keys.
+    - to:
+        - ipBlock: {cidr: 173.245.48.0/20}
+        - ipBlock: {cidr: 103.21.244.0/22}
+        - ipBlock: {cidr: 103.22.200.0/22}
+        - ipBlock: {cidr: 103.31.4.0/22}
+        - ipBlock: {cidr: 141.101.64.0/18}
+        - ipBlock: {cidr: 108.162.192.0/18}
+        - ipBlock: {cidr: 190.93.240.0/20}
+        - ipBlock: {cidr: 188.114.96.0/20}
+        - ipBlock: {cidr: 197.234.240.0/22}
+        - ipBlock: {cidr: 198.41.128.0/17}
+        - ipBlock: {cidr: 162.158.0.0/15}
+        - ipBlock: {cidr: 104.16.0.0/13}
+        - ipBlock: {cidr: 104.24.0.0/14}
+        - ipBlock: {cidr: 172.64.0.0/13}
+        - ipBlock: {cidr: 131.0.72.0/22}
+      ports: [{protocol: TCP, port: 443}]

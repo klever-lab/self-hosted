@@ -111,20 +111,47 @@ AllowedIPs = 0.0.0.0/0
         self.assertEqual(policy['spec']['egress'], [
             {'to': [{'ipBlock': {'cidr': '8.8.8.8/32'}}], 'ports': [{'protocol': 'UDP', 'port': 443}]}])
 
-    def test_last_client_revocation_stops_the_live_service(self):
+    def test_last_client_revocation_updates_inventory_without_restarting(self):
         state = self.state()
-        state['peers']['friend'] = {'addresses': ['10.76.0.2/32']}
+        state['inventory_migrated'] = True
         vpn.save(state)
+        inventory = {'peers': {'friend': {'email': 'friend@example.com'}}, 'retired': {}}
         exported = self.directory / 'friend.conf'
         exported.write_text('private client profile')
+
+        def update(mutation):
+            self.assertTrue(mutation(inventory))
+            self.assertFalse(mutation(inventory))
+            return inventory
+
         with patch.object(sys, 'argv', ['friends-vpn', 'revoke', 'friend']), \
+                patch.object(vpn.devices, 'update', side_effect=update), \
+                patch.object(vpn.devices, 'wait_for_gateway', side_effect=lambda check: self.assertTrue(check(inventory))), \
                 patch.object(vpn.manage, 'kube') as kube, redirect_stdout(io.StringIO()):
             vpn.main()
         self.assertFalse(exported.exists())
         self.assertTrue(exported.with_suffix('.conf.revoked').exists())
-        self.assertEqual(vpn.read_state()['peers'], {})
-        self.assertIn('--replicas=0', kube.call_args_list[0].args)
-        self.assertIn('--for=delete', kube.call_args_list[1].args)
+        self.assertEqual(inventory['peers'], {})
+        self.assertEqual(inventory['retired'], {'friend': 'friend@example.com'})
+        kube.assert_not_called()
+
+    def test_seed_preserves_legacy_keys_and_never_overwrites_the_live_inventory(self):
+        state = self.state()
+        state['peers']['friend'] = {'public_key': PUBLIC, 'preshared_key': PRIVATE, 'addresses': vpn.devices.addresses(2)}
+        state['next_peer'] = 3
+        with patch.object(vpn, 'public_key', return_value=PUBLIC), \
+                patch.object(vpn.devices, 'read', return_value=(None, None)), \
+                patch.object(vpn.devices, 'seed') as seed:
+            vpn.seed_inventory(state, None)
+        seeded = seed.call_args.args[0]
+        self.assertEqual(seeded['peers']['friend'], {**state['peers']['friend'], 'name': 'friend'})
+        self.assertEqual(seeded['next_peer'], 3)
+        self.assertTrue(vpn.read_state()['inventory_migrated'])
+        with patch.object(vpn, 'public_key', return_value=PUBLIC), \
+                patch.object(vpn.devices, 'read', return_value=(seeded, '1')), \
+                patch.object(vpn.devices, 'seed') as seed:
+            vpn.seed_inventory(state, None)
+        seed.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -13,6 +13,23 @@ kind: ServiceAccount
 metadata: {name: friends-vpn}
 automountServiceAccountToken: false
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: friends-vpn-active}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: friends-vpn}
+rules:
+  - {apiGroups: [''], resources: [secrets], resourceNames: [friends-vpn-peers], verbs: [get]}
+  - {apiGroups: [''], resources: [configmaps], resourceNames: [friends-vpn-active], verbs: [patch]}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: friends-vpn}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: friends-vpn}
+subjects: [{kind: ServiceAccount, name: friends-vpn, namespace: friends-vpn}]
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata: {name: friends-vpn}
@@ -34,8 +51,8 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: sing-box
-          image: ghcr.io/sagernet/sing-box:v1.14.4@sha256:0788ffbddab2c68a99a2dd4780bbc50902f159af6f589df3ee74a8389d278279
-          args: [run, -c, /etc/sing-box/config.json]
+          image: ghcr.io/klever-lab/self-hosted-friends-vpn@sha256:25e879df506d0a6af45bc09f64985f662ab58b6d28442f1c5168e7c88110d890
+          args: [gateway]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -44,11 +61,26 @@ spec:
             requests: {cpu: 100m, memory: 64Mi}
             limits: {cpu: "2", memory: 512Mi}
           ports: [{name: wireguard, containerPort: 51820, protocol: UDP}]
+          readinessProbe:
+            exec: {command: [/friends-vpn, gateway-ready]}
+            periodSeconds: 2
+            timeoutSeconds: 2
           volumeMounts:
             - {name: config, mountPath: /etc/sing-box, readOnly: true}
+            - {name: service-account, mountPath: /var/run/secrets/kubernetes.io/serviceaccount, readOnly: true}
+            - {name: runtime, mountPath: /run/friends-vpn}
       volumes:
         - name: config
           secret: {secretName: friends-vpn, defaultMode: 0440}
+        - {name: runtime, emptyDir: {sizeLimit: 1Mi}}
+        - name: service-account
+          projected:
+            defaultMode: 0440
+            sources:
+              - serviceAccountToken: {path: token, expirationSeconds: 3600}
+              - configMap:
+                  name: kube-root-ca.crt
+                  items: [{key: ca.crt, path: ca.crt}]
 ---
 # The controller's opt-in host rule admits only this DNATed UDP service.
 apiVersion: v1

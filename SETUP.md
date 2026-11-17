@@ -111,7 +111,56 @@ Manage it independently with `./friends-vpn`; `./self-hosted deploy` and
 
 Keep server configuration and exported profiles in protected operator storage.
 Initialization refuses to overwrite the existing server identity; deployment
-preserves client keys. See [client management and recovery](docs/friends-vpn.md).
+preserves client keys. The first deployment of the live peer updater replaces
+the gateway Pod once and migrates the existing profiles. Later device additions
+and revocations take effect on the running WireGuard interface. See
+[client management and recovery](docs/friends-vpn.md).
+
+### Friends VPN portal
+
+The portal runs beside the gateway on Guaranine. Its `cloudflared` container
+publishes `https://vpn.bahasadri.com` and Cloudflare Access sends one-time email
+codes to approved addresses. WireGuard clients keep using UDP `31820` on the
+controller. Guaranine's workers pull the portal and gateway image anonymously
+from the `klever-lab/self-hosted-friends-vpn` GitHub Container Registry package.
+
+1. Confirm that the Cloudflare account owns the active `bahasadri.com` DNS zone
+   and its Zero Trust team has the One-time PIN login method. Create a scoped
+   account API token using the following dashboard permissions.
+
+   | Scope | Permission | Access |
+   | --- | --- | --- |
+   | Account | Cloudflare One Connector: cloudflared or Argo Tunnel (Legacy) | Edit |
+   | Account | Access: Apps and Policies | Edit |
+   | Account | Access: Policies, when listed separately | Edit |
+   | Account | Access: Organizations, Identity Providers, and Groups | Edit |
+   | `bahasadri.com` zone | DNS | Edit |
+   | `bahasadri.com` zone | Zone | Read |
+
+2. Save the token in `cloudflare-api-token` in the protected `friends-vpn/`
+   operator directory with mode `0600`, then run these commands.
+
+   ```bash
+   ./friends-vpn deploy
+   ./friends-vpn setup-portal
+   ./friends-vpn deploy-portal
+   ./friends-vpn status
+   ```
+
+   `setup-portal` provisions the dedicated Access application, reusable email
+   policy, Tunnel, and proxied DNS record. It starts with an empty invitation list.
+   `deploy-portal` installs the website, Kubernetes permissions, and connector.
+   The API token stays on the operator machine. The connector runs with its own
+   tunnel token.
+3. Invite the first email and share the printed link.
+
+   ```bash
+   ./friends-vpn invite friend@example.com
+   ```
+
+   Test sign-in with the invited address and verify that an unlisted address is
+   rejected. Create a profile, import it into WireGuard, verify a Windscribe IP,
+   and revoke the test device. See [Friends VPN operation](docs/friends-vpn.md).
 
 ## Usenet setup
 
