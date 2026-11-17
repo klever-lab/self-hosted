@@ -113,6 +113,10 @@ def fixture():
                              'Endpoint = 198.51.100.1:443\nAllowedIPs = 0.0.0.0/0\nPersistentKeepalive = 25\n'}
         for name, value in values.items():
             Path('/etc/vpn', name).write_text(value + '\n')
+        # A capability-free root process cannot traverse a runner-owned private
+        # home. Match Kubernetes's root-owned ConfigMap mount with identical bytes.
+        initializer_script = directory / 'network.sh'
+        initializer_script.write_bytes(NETWORK.read_bytes())
 
         def check(prefix, address, port=18080, *, protocol='tcp', expected='vpn-fixture', source='', device=''):
             result = json.loads(run(*prefix, sys.executable, str(SCRIPT), '--probe', address,
@@ -124,7 +128,7 @@ def fixture():
         for protocol in ('tcp', 'udp'):
             check([], '198.51.100.55', protocol=protocol)
             check([], '1.1.1.1', 53, protocol=protocol)
-        initializer = ['setpriv', '--bounding-set=-all,+net_admin', '/bin/sh', str(NETWORK)]
+        initializer = ['setpriv', '--bounding-set=-all,+net_admin', '/bin/sh', str(initializer_script)]
         run(*initializer)
         run(*initializer)  # A failed init can retry after routes already changed.
         application = subprocess.Popen([sys.executable, str(SCRIPT), '--application'],
