@@ -92,7 +92,7 @@ Manage it independently with `./friends-vpn`; `./self-hosted deploy` and
    ./friends-vpn init \
      --windscribe-profile ~/.local/state/self-hosted/friends-wireguard.conf \
      --endpoint YOUR_CONTROLLER_PUBLIC_IPV4:31820
-   ./friends-vpn add kian
+   ./friends-vpn device add kian
    ./friends-vpn render
    ./friends-vpn deploy
    ./friends-vpn status
@@ -156,7 +156,7 @@ The gateway and portal run that executable in a digest-pinned Alpine image.
 3. Invite the first email and share the printed link.
 
    ```bash
-   ./friends-vpn invite friend@example.com
+   ./friends-vpn user add friend@example.com
    ```
 
    Test sign-in with the invited address and verify that an unlisted address is

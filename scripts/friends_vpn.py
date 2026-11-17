@@ -325,7 +325,7 @@ def revoke_live(name=None, *, email='', block=False):
         return identity == name if name else peer.get('email') == email
 
     if name and not re.fullmatch(r'[a-z0-9-]{1,36}', name):
-        raise ValueError('Use the device ID shown by friends-vpn list')
+        raise ValueError('Use the device ID shown by friends-vpn device list')
 
     def remove(inventory):
         if name and name not in inventory['peers'] and name not in inventory['retired']:
@@ -430,6 +430,11 @@ def command(args):
     if args.command == 'invite':
         invite(devices.email_address(args.email))
         return
+    if args.command == 'list-users':
+        _, policy = cloudflare.read_email_policy(cloudflare_api(), cloudflare_settings())
+        emails = sorted(cloudflare.policy_emails(policy) - {cloudflare.DISABLED_EMAIL})
+        print('\n'.join(emails) or 'No invited users.')
+        return
     if args.command == 'offboard':
         email = devices.email_address(args.email)
         api, config = cloudflare_api(), cloudflare_settings()
@@ -487,31 +492,47 @@ def command(args):
         print(f'Private inventory snapshot: {destination / "inventory.json"}')
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog='friends-vpn', description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
+    device_commands = commands.add_parser('device', help='manage WireGuard device profiles').add_subparsers(required=True)
+    user_commands = commands.add_parser('user', help='manage the portal email allowlist').add_subparsers(required=True)
+
+    for actions, remove_name in ((device_commands, 'remove'), (commands, 'revoke')):
+        add = actions.add_parser('add', help='create a private device export')
+        add.add_argument('name')
+        add.add_argument('--email')
+        add.set_defaults(command='add')
+        remove = actions.add_parser(remove_name, help='revoke one device or all devices for an email')
+        remove.add_argument('name', nargs='?')
+        remove.add_argument('--email')
+        remove.set_defaults(command='revoke')
+        listing = actions.add_parser('list', help='list devices and their owners')
+        listing.add_argument('--email')
+        listing.set_defaults(command='list')
+
+    for actions, add_name, remove_name in ((user_commands, 'add', 'remove'), (commands, 'invite', 'offboard')):
+        add = actions.add_parser(add_name, help='add an exact email to Cloudflare Access')
+        add.add_argument('email')
+        add.set_defaults(command='invite')
+        remove = actions.add_parser(remove_name, help='remove the email, revoke profiles and end Access sessions')
+        remove.add_argument('email')
+        remove.set_defaults(command='offboard')
+    user_commands.add_parser('list', help='list the emails allowed to sign in').set_defaults(command='list-users')
+
     init = commands.add_parser('init', help='create a protected WireGuard server identity')
     init.add_argument('--windscribe-profile', required=True)
     init.add_argument('--endpoint', required=True)
     deploy_command = commands.add_parser('deploy', help='install or upgrade the VPN gateway')
     deploy_command.add_argument('--restore-inventory')
-    add = commands.add_parser('add', help='create a private device export')
-    add.add_argument('name')
-    add.add_argument('--email')
-    revoke = commands.add_parser('revoke', help='revoke one device or all devices for an email')
-    revoke.add_argument('name', nargs='?')
-    revoke.add_argument('--email')
-    commands.add_parser('list', help='list devices and their owners').add_argument('--email')
     association = commands.add_parser('assign', help='associate an existing device with its owner')
     association.add_argument('name')
     association.add_argument('email')
-    commands.add_parser('invite', help='add an exact email to Cloudflare Access').add_argument('email')
-    commands.add_parser('offboard', help='remove the email, revoke profiles and end Access sessions').add_argument('email')
     commands.add_parser('setup-portal', help='configure Cloudflare Access, Tunnel and DNS')
     commands.add_parser('deploy-portal', help='deploy the website and Tunnel connector')
     for name in ('backup', 'status', 'render', 'render-portal'):
         commands.add_parser(name)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     os.umask(0o077)
     if DIRECTORY.resolve().is_relative_to(manage.ROOT):
         parser.error('Operator storage must be outside Git')

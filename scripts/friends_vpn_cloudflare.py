@@ -107,7 +107,7 @@ def policy_emails(policy):
         raise ValueError('The Friends VPN Access policy must contain only exact Email include rules') from None
 
 
-def change_email(api, config, address, *, allow):
+def read_email_policy(api, config):
     app = api.call('GET', app_path(config))
     if app.get('domain') != HOST:
         raise ValueError(f'The configured Cloudflare Access application must protect {HOST}')
@@ -120,6 +120,11 @@ def change_email(api, config, address, *, allow):
     current = api.call('GET', path)
     if current.get('app_count') != 1:
         raise ValueError('The Friends VPN Access policy must be dedicated to its portal')
+    return path, current
+
+
+def change_email(api, config, address, *, allow):
+    path, current = read_email_policy(api, config)
     emails = policy_emails(current) - {DISABLED_EMAIL}
     updated = (emails | {address}) if allow else (emails - {address})
     if updated == emails:

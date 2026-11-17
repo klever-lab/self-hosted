@@ -21,10 +21,11 @@ Invite a friend from the repository root and share the link printed by the CLI.
 Cloudflare sends the email code when they sign in.
 
 ```bash
-./friends-vpn invite friend@example.com
+./friends-vpn user add friend@example.com
 ```
 
-The same dedicated allowlist is editable in the Cloudflare Access dashboard.
+`./friends-vpn user list` shows the live Cloudflare Access allowlist, which is
+also editable in the Cloudflare dashboard.
 Repeated invitations for the same address leave one rule. Work on the list from
 one admin session at a time, since Cloudflare updates the whole set of rules.
 
@@ -44,21 +45,21 @@ profile to issue a new key. Treat both a downloaded config and its QR code as
 credentials. Give each device its own config since sharing a key disrupts
 connections.
 
-The CLI uses the same inventory. Use the device ID shown by `list` for
+The CLI uses the same inventory. Use the device ID shown by `device list` for
 individual administration. Profiles issued before the portal retain their
 existing keys and work with their existing files. Assign the owner to show a
 legacy device in their portal and include it in email-wide revocation.
 
 ```bash
-./friends-vpn add friend-phone --email friend@example.com
+./friends-vpn device add friend-phone --email friend@example.com
 ./friends-vpn assign existing-laptop friend@example.com
-./friends-vpn list --email friend@example.com
-./friends-vpn revoke friend-phone
-./friends-vpn revoke --email friend@example.com
-./friends-vpn offboard friend@example.com
+./friends-vpn device list --email friend@example.com
+./friends-vpn device remove friend-phone
+./friends-vpn device remove --email friend@example.com
+./friends-vpn user remove friend@example.com
 ```
 
-`add` prints the path of the private export. Files are mode `0600` under
+`device add` prints the path of the private export. Files are mode `0600` under
 `${SELF_HOSTED_OPERATOR_DIR:-~/.local/state/self-hosted}/friends-vpn/`.
 Revocation archives a CLI export as `.conf.revoked`. Adds and revocations
 update the running gateway and preserve other peers' connections, including
@@ -67,11 +68,12 @@ prevent reuse while old flows are draining. The current address pool supports
 253 cumulative allocations. Retry the same command if gateway confirmation
 times out.
 
-`offboard` blocks the email at the portal, removes its VPN profiles, removes its
-Access invitation, and ends its existing Access sessions for the Cloudflare
-account. `revoke --email` only revokes the profiles. Use `invite` to restore
-portal access to a previously offboarded email. To complete offboarding through
-the Cloudflare dashboard, run `offboard` after removing the email from the policy.
+`user remove` blocks the email at the portal, removes its VPN profiles, removes
+its Access invitation, and ends its existing Access sessions for the Cloudflare
+account. `device remove --email` revokes the profiles for that address. Use
+`user add` to restore portal access to a previously removed email. To complete
+offboarding through the Cloudflare dashboard, run `user remove` after removing
+the email from the policy.
 
 ## Traffic and isolation
 

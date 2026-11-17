@@ -10,7 +10,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import friends_vpn as vpn
@@ -135,6 +135,42 @@ AllowedIPs = 0.0.0.0/0
         self.assertEqual(inventory['peers'], {})
         self.assertEqual(inventory['retired'], {'friend': 'friend@example.com'})
         kube.assert_not_called()
+
+    def test_grouped_actions_accept_the_same_arguments_as_the_existing_commands(self):
+        email = 'friend@example.com'
+        pairs = (
+            (['device', 'add', 'phone', '--email', email], ['add', 'phone', '--email', email]),
+            (['device', 'remove', 'phone'], ['revoke', 'phone']),
+            (['device', 'remove', '--email', email], ['revoke', '--email', email]),
+            (['device', 'list', '--email', email], ['list', '--email', email]),
+            (['user', 'add', email], ['invite', email]),
+            (['user', 'remove', email], ['offboard', email]),
+        )
+        for grouped, existing in pairs:
+            with self.subTest(argv=grouped), patch.object(vpn, 'command') as command:
+                vpn.main(existing)
+                vpn.main(grouped)
+                original, new = command.call_args_list
+                self.assertEqual(original, new)
+
+    def test_user_list_reads_the_live_allowlist_without_showing_the_placeholder(self):
+        config = {'account_id': 'a' * 32, 'application_id': '11111111-1111-4111-8111-111111111111',
+                  'policy_id': '22222222-2222-4222-8222-222222222222'}
+        app = {'domain': vpn.cloudflare.HOST, 'policies': [{'id': config['policy_id']}]}
+        policy = {'decision': 'allow', 'app_count': 1, 'include': [
+            {'email': {'email': email}}
+            for email in ('zoe@example.com', vpn.cloudflare.DISABLED_EMAIL, 'amos@example.com')
+        ]}
+        with patch.object(vpn, 'cloudflare_api') as create_api, \
+                patch.object(vpn, 'cloudflare_settings', return_value=config), redirect_stdout(io.StringIO()) as output:
+            api = create_api.return_value
+            api.call.side_effect = [app, policy]
+            vpn.main(['user', 'list'])
+        self.assertEqual(output.getvalue().splitlines(), ['amos@example.com', 'zoe@example.com'])
+        self.assertEqual(api.call.call_args_list, [
+            call('GET', vpn.cloudflare.app_path(config)),
+            call('GET', vpn.cloudflare.account_path(config) + '/access/policies/' + config['policy_id']),
+        ])
 
     def test_seed_preserves_legacy_keys_and_never_overwrites_the_live_inventory(self):
         state = self.state()
