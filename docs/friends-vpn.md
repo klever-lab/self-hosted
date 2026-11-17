@@ -6,6 +6,10 @@ Tailscale installation or tailnet membership is needed on their devices.
 Each device gets its own private configuration and revocable key. Follow
 [SETUP.md](../SETUP.md#public-friends-vpn) for initial deployment.
 
+[Deferred ideas](friends-vpn-ideas.md) records possible Funnel/TLS alternatives
+and additional security controls. The current deployment continues to use
+WireGuard through OVH.
+
 Windscribe's [personal-account sharing rules](https://windscribe.com/knowledge-base/articles/am-i-allowed-to-share-my-windscribe-account)
 prohibit sharing an account with other people. [ScribeForce](https://windscribe.com/scribeforce)
 is its group product; arrange suitable provider access before distributing the
