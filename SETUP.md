@@ -90,8 +90,9 @@ The initializer configures `news.frugalusenet.com` at priority 0 and
 Without local provider credentials these presets remain disabled until configured
 in the UI. Saved provider and RSS settings are retained on restart. When
 `usenet.json` is present it is authoritative for the two Frugal logins.
-An optional `althub_api_key` can be retained there for later indexer integration;
-manually uploading an NZB to SABnzbd does not need that key.
+Add `althub_api_key` there to use the `./althub` operator CLI for searches, NZB
+file inspection and cart changes. See [CLI usage](docs/usenet.md#operator-cli).
+Manually uploading an NZB to SABnzbd does not need that key.
 
 Deploy and check SABnzbd independently with:
 

@@ -9,6 +9,7 @@ Guaranine owns the Kubernetes platform. This repository owns the applications.
   per-user Kobo sync. The library is available only through Tailscale.
 - **SABnzbd:** private HTTPS Usenet downloader with verified TLS, retained downloads,
   and Frugal primary/bonus server presets. Provider access and an NZB indexer are separate accounts.
+  The `./althub` operator CLI searches the indexer, inspects file formats and manages its cart.
 - **Book importer:** completed downloads in either downloader's `books` category are
   uploaded to Calibre-Web every two minutes. Original downloads are retained.
 - **Jellyfin file gateway:** read-only access to download payloads for the separately

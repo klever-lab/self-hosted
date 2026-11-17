@@ -285,3 +285,22 @@ runs on its volume's worker; its userspace Tailscale gateway can run separately.
 Provider credentials, API keys, NZB links and the private verification receipt
 remain outside Git. Native Kobo download and opening of this new book were not
 physically checked.
+
+## altHUB operator CLI
+
+- Live ebook searches returned release IDs, sizes, dates and public details links
+  using the existing protected API key. No API/download URLs are included in the
+  structured output.
+- File inspection followed altHUB's authenticated NZB redirect and identified
+  the EPUB in the selected *I, Robot* release. Book payloads were not downloaded.
+- A temporary cart entry for the earlier *A Princess of Mars* verification release
+  was added successfully. Adding it again returned `already_present`; removing
+  that test addition succeeded. No other cart entries were changed. SABnzbd had
+  no RSS feeds configured during this check.
+- Thirteen new tests exercise the actual Requests request/redirect machinery using
+  an in-memory adapter. They cover search pagination, file metadata, cart mutations,
+  duplicate adds, rate limits, malformed responses, private credential loading,
+  argument validation, and suppression of credential-bearing URLs in output.
+- The complete suite passed 62 tests. ShellCheck includes the new launcher.
+
+The reuse audit and operating commands are recorded in [Usenet operation](usenet.md).
