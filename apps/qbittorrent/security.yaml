@@ -29,7 +29,7 @@ spec:
           c.name == 'vpn' &&
           c.image == 'ghcr.io/linuxserver/wireguard@sha256:10db56ad834f94541307d5dfdbe87370e26d155bb341a5bf65789f970f24ab5c' &&
           !has(c.restartPolicy) &&
-          has(c.command) && c.command == ['/bin/sh', '/network/network.sh'] &&
+          has(c.command) && c.command == ['/bin/sh', '/network/network.sh', '/etc/vpn'] &&
           (!has(c.args) || size(c.args) == 0) && !has(c.envFrom) &&
           (!has(c.env) || size(c.env) == 0) &&
           !has(c.lifecycle) && !has(c.livenessProbe) && !has(c.volumeDevices) &&

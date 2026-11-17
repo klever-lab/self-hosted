@@ -44,7 +44,7 @@ def echo(address, port, *, report_peer=False):
         threading.Thread(target=serve, daemon=True).start()
 
 
-def probe(address, port, protocol, source='', device=''):
+def probe(address, port, protocol, source, source_port, device):
     # No running application process receives network-administration capabilities.
     os.setgroups([])
     os.setgid(1000)
@@ -54,7 +54,7 @@ def probe(address, port, protocol, source='', device=''):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM if protocol == 'udp' else socket.SOCK_STREAM) as sock:
         sock.settimeout(0.5)
         if source:
-            sock.bind((source, 0))
+            sock.bind((source, int(source_port)))
         if device:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BINDTODEVICE, device.encode() + b'\0')
         try:
@@ -71,12 +71,7 @@ def probe(address, port, protocol, source='', device=''):
 
 
 def fixture():
-    # These mounts and every network interface exist only in child namespaces.
-    protocols = Path('/etc/protocols').read_bytes()
-    run('mount', '-t', 'tmpfs', 'tmpfs', '/run')
-    run('mount', '-t', 'tmpfs', 'tmpfs', '/etc')
-    Path('/etc/protocols').write_bytes(protocols)
-    Path('/etc/vpn').mkdir()
+    # The fixture's network devices, routes and firewall are private to its namespaces.
     run('ip', 'link', 'set', 'lo', 'up')
     with ExitStack() as cleanup, tempfile.TemporaryDirectory() as temporary:
         directory = Path(temporary)
@@ -111,16 +106,19 @@ def fixture():
                   'peer-port': '10837', 'forwarded-port': '10837',
                   'wg.conf': f'[Interface]\nPrivateKey = {client_key}\n[Peer]\nPublicKey = {server_public}\n'
                              'Endpoint = 198.51.100.1:443\nAllowedIPs = 0.0.0.0/0\nPersistentKeepalive = 25\n'}
+        vpn = directory / 'vpn'
+        vpn.mkdir()
         for name, value in values.items():
-            Path('/etc/vpn', name).write_text(value + '\n')
+            (vpn / name).write_text(value + '\n')
         # A capability-free root process cannot traverse a runner-owned private
         # home. Match Kubernetes's root-owned ConfigMap mount with identical bytes.
         initializer_script = directory / 'network.sh'
         initializer_script.write_bytes(NETWORK.read_bytes())
 
-        def check(prefix, address, port=18080, *, protocol='tcp', expected='vpn-fixture', source='', device=''):
+        def check(prefix, address, port=18080, *, protocol='tcp', expected='vpn-fixture',
+                  source='', source_port=0, device=''):
             result = json.loads(run(*prefix, sys.executable, str(SCRIPT), '--probe', address,
-                                    str(port), protocol, source, device))
+                                    str(port), protocol, source, str(source_port), device))
             if result != expected:
                 raise AssertionError(f'{address}:{port}/{protocol} expected {expected!r}, got {result!r}')
 
@@ -128,7 +126,7 @@ def fixture():
         for protocol in ('tcp', 'udp'):
             check([], '198.51.100.55', protocol=protocol)
             check([], '1.1.1.1', 53, protocol=protocol)
-        initializer = ['setpriv', '--bounding-set=-all,+net_admin', '/bin/sh', str(initializer_script)]
+        initializer = ['setpriv', '--bounding-set=-all,+net_admin', '/bin/sh', str(initializer_script), str(vpn)]
         run(*initializer)
         run(*initializer)  # A failed init can retry after routes already changed.
         application = subprocess.Popen([sys.executable, str(SCRIPT), '--application'],
@@ -143,15 +141,24 @@ def fixture():
                   source='198.51.100.55', expected='198.51.100.55')
         check(provider, '10.42.0.2', 8080)
 
-        run(*provider, 'iptables', '-I', 'INPUT', '-p', 'udp', '--dport', '443', '-j', 'DROP')
+        run(*provider, 'nft', '-f', '-', input='''table inet vpn_fixture {
+            chain input {
+                type filter hook input priority 0; policy accept;
+                udp dport 443 drop
+            }
+        }''')
         for protocol in ('tcp', 'udp'):
             check([], '198.51.100.55', protocol=protocol, expected='')
             check([], '198.51.100.55', protocol=protocol, device='eth0', expected='')
         check(provider, '10.42.0.2', 8080)
-        run(*provider, 'iptables', '-D', 'INPUT', '-p', 'udp', '--dport', '443', '-j', 'DROP')
+        run(*provider, 'nft', 'delete', 'table', 'inet', 'vpn_fixture')
         check([], '198.51.100.55')
+        # Keep the UDP source tuple after route fallback to exercise conntrack.
+        check([], '198.51.100.55', protocol='udp', source='10.64.0.2', source_port=40000)
         run('ip', 'link', 'set', 'wg0', 'down')
         run('ip', 'route', 'replace', 'default', 'via', '10.42.0.1', 'dev', 'eth0')
+        run(*provider, 'ip', 'route', 'replace', '10.64.0.2/32', 'via', '10.42.0.2', 'dev', 'uplink')
+        check([], '198.51.100.55', protocol='udp', source='10.64.0.2', source_port=40000, expected='')
         for protocol in ('tcp', 'udp'):
             check([], '198.51.100.55', protocol=protocol, expected='')
         print('Peer IPs, incoming TCP/UDP, tunneled DNS, retry, recovery and fail-closed egress passed.')
@@ -160,7 +167,7 @@ def fixture():
 class VPNNetworkTests(unittest.TestCase):
     def test_initializer_preserves_peers_and_blocks_bypasses(self):
         namespace = [] if os.geteuid() == 0 else ['--user', '--map-auto', '--map-root-user']
-        result = subprocess.run(['unshare', *namespace, '--mount', '--net',
+        result = subprocess.run(['unshare', *namespace, '--net',
                                  sys.executable, str(SCRIPT), '--fixture'], capture_output=True, text=True, timeout=100)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
