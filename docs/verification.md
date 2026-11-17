@@ -255,3 +255,33 @@ Live catalog inspection used a temporary utility with SQLite URI `mode=ro` and
 `query_only`, tested against an existing read-only snapshot without changing its
 hash. The reader database was not copied or edited directly. Temporary inspection
 utilities were removed from the reader after verification.
+
+## Usenet deployment (2026-11-16)
+
+SABnzbd is deployed in its restricted namespace with retained configuration,
+downloads and import receipts. All images are pinned by digest. The downloader
+runs on its volume's worker; its userspace Tailscale gateway can run separately.
+
+- Frugal's primary and bonus servers accepted the supplied credentials over
+  verified TLS 1.3 on port 563. The configured priorities are 0 and 1 respectively.
+- altHUB accepted the supplied API key for a live ebook search. Its capabilities
+  advertise Books and EBook categories. The key remains in protected operator
+  storage; manual NZB uploads do not require a persistent indexer connection.
+- The live Tailscale Serve configuration has `AllowFunnel: false` for Usenet HTTPS.
+  The private root requires a login, and unauthenticated history requests return
+  HTTP 403. The version endpoint is intentionally available without an API key.
+- A small *A Princess of Mars* NZB completed in category `books`. The scheduled
+  importer created library book 261 as an EPUB. Its archive passed complete ZIP
+  integrity checks and has the correct EPUB mimetype.
+- The library file and retained download have identical SHA-256
+  `0d1af16f795f53a55069cdf7e1a47b7e8fa0f2b566821a2a34133c3622169eb3`.
+  A manual repeat imported zero new files, and the library has one matching book.
+- All admission checks passed, including the new workload templates and existing
+  qBittorrent rejection cases. Dry runs created no Pods or debug containers.
+- The repository's 49 tests and ShellCheck passed. Tests include interrupted
+  upload receipts, history pagination, path/symlink confinement, retained provider
+  settings, and restoration of both import schedules after a failed backup export.
+
+Provider credentials, API keys, NZB links and the private verification receipt
+remain outside Git. Native Kobo download and opening of this new book were not
+physically checked.

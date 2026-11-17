@@ -2,10 +2,12 @@
 
 from copy import deepcopy
 import importlib.util
+import json
 import os
 from pathlib import Path
 import sqlite3
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
@@ -21,6 +23,7 @@ def module(name, path):
 
 bootstrap = module('sab_bootstrap', 'apps/sabnzbd/bootstrap.py')
 importer = module('book_importer', 'integrations/books/import_books.py')
+manage = module('usenet_manage', 'scripts/manage.py')
 
 
 class DownloaderSettingsTests(unittest.TestCase):
@@ -176,6 +179,43 @@ class ImportReceiptTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'interrupted upload'):
             importer.main()
         self.assertEqual(len(self.uploads()), 1)
+
+
+class BackupRecoveryTests(unittest.TestCase):
+    def test_failed_export_restores_writers_and_each_original_import_schedule(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            for name in ('config.json', 'access.json', 'wireguard.conf'):
+                (state / name).write_text('fixture')
+            calls = []
+            original = {'qbittorrent': False, 'sabnzbd': True}
+
+            def kube(*args, **kwargs):
+                calls.append(args)
+                payload = {}
+                if args[:2] == ('get', 'deployments'):
+                    payload = {'items': [{'metadata': {'name': app, 'namespace': app}} for app in manage.APPS]}
+                elif args[2:4] == ('get', 'cronjob'):
+                    if args[1] not in original:
+                        return SimpleNamespace(stdout=b'', stderr=b'', returncode=0)
+                    payload = {'spec': {'suspend': original[args[1]]}}
+                elif args[2:4] == ('get', 'jobs'):
+                    payload = {'items': []}
+                elif args[2:4] == ('get', 'deployment'):
+                    payload = {'spec': {'replicas': 1}}
+                return SimpleNamespace(stdout=json.dumps(payload).encode(), stderr=b'', returncode=0)
+
+            with patch.object(manage, 'STATE', state), patch.object(manage, 'kube', side_effect=kube), \
+                    patch.object(manage, 'apply', side_effect=RuntimeError('export could not start')):
+                with self.assertRaisesRegex(RuntimeError, 'export could not start'):
+                    manage.backup({'wireguard_profile': str(state / 'wireguard.conf')})
+            for app in manage.APPS:
+                scales = [call[-1] for call in calls if call[:4] == ('-n', app, 'scale', 'deployment/' + app)]
+                self.assertEqual(scales, ['--replicas=0', '--replicas=1'])
+            for app, initial in original.items():
+                suspends = [json.loads(call[-1])['spec']['suspend'] for call in calls
+                            if call[:4] == ('-n', app, 'patch', 'cronjob')]
+                self.assertEqual(suspends, [True, initial])
 
 
 if __name__ == '__main__':
