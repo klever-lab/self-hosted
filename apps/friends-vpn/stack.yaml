@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: friends-vpn
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: friends-vpn}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: friends-vpn}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: friends-vpn}}
+  template:
+    metadata: {labels: {app: friends-vpn}}
+    spec:
+      serviceAccountName: friends-vpn
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        supplementalGroupsPolicy: Strict
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: sing-box
+          image: ghcr.io/sagernet/sing-box:v1.14.4@sha256:0788ffbddab2c68a99a2dd4780bbc50902f159af6f589df3ee74a8389d278279
+          args: [run, -c, /etc/sing-box/config.json]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: "2", memory: 512Mi}
+          ports: [{name: wireguard, containerPort: 51820, protocol: UDP}]
+          volumeMounts:
+            - {name: config, mountPath: /etc/sing-box, readOnly: true}
+      volumes:
+        - name: config
+          secret: {secretName: friends-vpn, defaultMode: 0440}
+---
+# The controller's opt-in host rule admits only this DNATed UDP service.
+apiVersion: v1
+kind: Service
+metadata: {name: friends-vpn}
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  selector: {app: friends-vpn}
+  ports: [{name: wireguard, port: 51820, targetPort: wireguard, nodePort: 31820, protocol: UDP}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: default-deny}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: wireguard-clients}
+spec:
+  podSelector: {matchLabels: {app: friends-vpn}}
+  policyTypes: [Ingress]
+  ingress:
+    - ports: [{protocol: UDP, port: 51820}]

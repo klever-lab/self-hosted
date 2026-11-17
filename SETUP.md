@@ -45,6 +45,8 @@ Applications are available only to the existing authorized tailnet operator;
 Funnel is disabled for every gateway. Calibre-Web also requires authentication,
 with anonymous browsing and public registration disabled. Its login is configured before startup.
 The gateways have no grant to administer other tailnet devices.
+The separately deployed Friends VPN has its own public WireGuard endpoint; it
+does not publish any of these application gateways.
 
 qBittorrent serves VueTorrent at its existing HTTPS address, using the same login.
 The WebUI initializer downloads the pinned release through the VPN, verifies its
@@ -71,6 +73,45 @@ Deploying qBittorrent and Calibre-Web together also installs their book-import i
 SABnzbd includes its own importer and expects Calibre-Web to be deployed already,
 or in the same deployment. The shared
 `components/edge` directory contains the userspace Tailscale gateway resources.
+
+## Public Friends VPN
+
+Friends use the standard WireGuard app and do not need Tailscale accounts. Read
+[VPN behavior and limits](docs/friends-vpn.md) before distributing profiles.
+Manage it independently with `./friends-vpn`; `./self-hosted deploy` and
+`./self-hosted backup` continue to manage the media applications.
+
+1. Install `wireguard-tools` on the operator computer. Generate a **fresh**
+   Windscribe WireGuard configuration, for example Toronto on UDP 443. Keep the
+   Jellyfin and qBittorrent keys separate. Save the new profile outside Git at
+   `~/.local/state/self-hosted/friends-wireguard.conf` with mode `0600`.
+2. Initialize with the cloud controller's public IPv4 address and fixed UDP
+   NodePort `31820`, then create one client per device:
+
+   ```bash
+   ./friends-vpn init \
+     --windscribe-profile ~/.local/state/self-hosted/friends-wireguard.conf \
+     --endpoint YOUR_CONTROLLER_PUBLIC_IPV4:31820
+   ./friends-vpn add kian
+   ./friends-vpn render
+   ./friends-vpn deploy
+   ./friends-vpn status
+   ```
+
+3. Guaranine must activate its opt-in
+   [`kairos/public-vpn.yaml`](https://github.com/klever-lab/guaranine/blob/main/kairos/public-vpn.yaml)
+   profile on the controller; see its [public ingress procedure](https://github.com/klever-lab/guaranine/blob/main/SETUP.md#public-wireguard-ingress).
+   This permits only public IPv4 traffic DNATed from UDP `31820` to the VPN Pod's
+   UDP `51820`. Worker host firewalls keep their existing rules. The cloud
+   network must also allow that public UDP port.
+4. Import the generated private `kian.conf` from the protected `friends-vpn/`
+   operator directory into the WireGuard app. Enable it and verify its public
+   IPv4 address belongs to Windscribe. Client files are credentials; transfer
+   each directly to its intended recipient.
+
+Keep server configuration and exported profiles in protected operator storage.
+Initialization refuses to overwrite the existing server identity; deployment
+preserves client keys. See [client management and recovery](docs/friends-vpn.md).
 
 ## Usenet setup
 
