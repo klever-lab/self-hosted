@@ -24,8 +24,7 @@ def check(pod, name, *, denied=False, ephemeral=False):
 
 
 def main():
-    cfg = manage.load('config.json')
-    items = manage.objects(cfg, manage.APPS)
+    items = manage.objects(manage.APPS)
     pods = list(manage.pod_templates(items))
     for index, pod in enumerate(pods):
         check(pod, f'workload template {index + 1} ({pod["metadata"]["namespace"]})')

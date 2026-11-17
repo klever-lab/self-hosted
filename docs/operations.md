@@ -1,7 +1,9 @@
 # Operations and recovery
 
-Run `./self-hosted status` for pods and volumes. The applications run on the selected
-existing worker; Guaranine's control plane remains dedicated to platform work.
+Run `./self-hosted status` for pods and volumes. Kubernetes chooses workers without
+hostname selectors; existing local volumes still keep their consumers on the
+owning worker. The gateways can restart on other workers using their existing
+Kubernetes identity Secrets. Guaranine's control plane remains dedicated to platform work.
 Both applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 

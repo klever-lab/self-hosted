@@ -146,6 +146,7 @@ spec:
             limits: {cpu: "1", memory: 128Mi}
           volumeMounts:
             - {name: config, mountPath: /config}
+            - {name: webui, mountPath: /config/webui}
             - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
       containers:
         - name: qbittorrent
@@ -167,6 +168,7 @@ spec:
           readinessProbe: {httpGet: {path: /, port: 8080}}
           volumeMounts:
             - {name: config, mountPath: /config}
+            - {name: webui, mountPath: /config/webui, readOnly: true}
             - {name: downloads, mountPath: /downloads}
             - {name: tmp, mountPath: /tmp}
       volumes:
@@ -175,4 +177,5 @@ spec:
         - {name: bootstrap, configMap: {name: qbittorrent-bootstrap}}
         - {name: credentials, secret: {secretName: credentials, defaultMode: 0440}}
         - {name: wireguard, secret: {secretName: wireguard, defaultMode: 0440}}
+        - {name: webui, emptyDir: {sizeLimit: 64Mi}}
         - {name: tmp, emptyDir: {sizeLimit: 128Mi}}

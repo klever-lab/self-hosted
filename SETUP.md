@@ -10,10 +10,10 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
    mode `0600`. Choose a [P2P-enabled Windscribe location](https://windscribe.com/knowledge-base/articles/does-windscribe-allow-peer-to-peer-p2p-traffic);
    some locations, including Boston - MIT, block torrent traffic.
    Never run the same WireGuard private key in two clients.
-2. Find the worker with `kubectl get nodes` and initialize:
+2. Check for a Ready worker with `kubectl get nodes` and initialize:
 
    ```bash
-   ./self-hosted init --node YOUR_WORKER --wireguard-profile /private/path/qbittorrent.conf
+   ./self-hosted init --wireguard-profile /private/path/qbittorrent.conf
    ```
 
    Initialization uses `klever` for both administrator usernames and generates
@@ -48,7 +48,8 @@ Both gateways have no grant to administer other tailnet devices.
 
 qBittorrent serves VueTorrent at its existing HTTPS address, using the same login.
 The WebUI initializer downloads the pinned release through the VPN, verifies its
-SHA-256, and retains it in the configuration volume. Its pin is
+SHA-256, and places it in a temporary disk volume shared with qBittorrent. Pod
+replacement downloads it again; torrent/session state stays in the configuration volume. Its pin is
 `apps/qbittorrent/vuetorrent.json`; update the version, release URL and checksum
 together before redeploying. VueTorrent's display settings include transfer graphs
 and bits-per-second speed units.

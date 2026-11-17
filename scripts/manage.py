@@ -62,7 +62,7 @@ def secret(namespace, name, values):
             'type': 'Opaque', 'data': {k: base64.b64encode(v.encode()).decode() for k, v in values.items()}}
 
 
-def objects(cfg, selected):
+def objects(selected):
     paths = [ROOT / 'apps' / app for app in selected]
     if set(selected) == set(APPS):
         paths.append(ROOT / 'integrations/books')
@@ -75,14 +75,6 @@ def objects(cfg, selected):
             # Kustomize's scope table does not yet recognize these cluster resources.
             if obj['kind'] in ADMISSION_KINDS:
                 obj['metadata'].pop('namespace', None)
-            if obj['kind'] == 'Deployment':
-                spec = obj['spec']['template']['spec']
-            elif obj['kind'] == 'CronJob':
-                spec = obj['spec']['jobTemplate']['spec']['template']['spec']
-            else:
-                spec = None
-            if spec is not None:
-                spec['nodeSelector'] = {'kubernetes.io/hostname': cfg['node']}
             items.append(obj)
     return items
 
@@ -281,7 +273,7 @@ def check_admission(items):
 def deploy(cfg, selected):
     access = load('access.json')
     fingerprints = {}
-    items = objects(cfg, selected)
+    items = objects(selected)
     install_admission(items)
     check_admission_guard(items)
     apply([obj for obj in items if obj['kind'] == 'Namespace'])
@@ -356,7 +348,6 @@ def backup(cfg):
             pod_name = 'state-backup-' + secrets.token_hex(3)
             pod = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': pod_name, 'namespace': app},
                 'spec': {'restartPolicy': 'Never', 'automountServiceAccountToken': False,
-                    'nodeSelector': {'kubernetes.io/hostname': cfg['node']},
                     'securityContext': {'runAsNonRoot': True, 'runAsUser': 1000, 'runAsGroup': 1000,
                         'fsGroup': 1000, 'supplementalGroupsPolicy': 'Strict', 'seccompProfile': {'type': 'RuntimeDefault'}},
                     'containers': [{'name': 'backup', 'image': 'ghcr.io/bjw-s-labs/calibre-web:0.6.27@sha256:5d08f83d3bb2ca51bcce0ca46c2c2c59aa4bbb6c384317dac7f241e51c976e58',
@@ -413,7 +404,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     init = commands.add_parser('init')
-    init.add_argument('--node', required=True)
     init.add_argument('--wireguard-profile', required=True)
     init.add_argument('--username', default='klever')
     for name in ('deploy', 'render', 'status'):
@@ -434,7 +424,7 @@ def main():
         if (STATE / 'config.json').exists() or (STATE / 'access.json').exists():
             raise ValueError('Operator configuration already exists; edit it deliberately')
         tailnet = json.loads(run(['tailscale', 'status', '--json']).stdout)['CurrentTailnet']
-        cfg = {'node': args.node, 'dns_suffix': tailnet['MagicDNSSuffix'],
+        cfg = {'dns_suffix': tailnet['MagicDNSSuffix'],
                'wireguard_profile': str(Path(args.wireguard_profile).expanduser().resolve()),
                'hostnames': {'qbittorrent': 'qbittorrent', 'calibre-web': 'books'}}
         access = {app: {'username': args.username, 'password': secrets.token_urlsafe(24)} for app in APPS}
@@ -446,7 +436,7 @@ def main():
     cfg = load('config.json')
     selected = (args.app,) if getattr(args, 'app', None) else APPS
     if args.command == 'render':
-        print(yaml.safe_dump_all(objects(cfg, selected), sort_keys=False))
+        print(yaml.safe_dump_all(objects(selected), sort_keys=False))
     elif args.command == 'deploy':
         deploy(cfg, selected)
     elif args.command == 'status':
