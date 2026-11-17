@@ -2,7 +2,7 @@
 
 import base64
 import configparser
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
@@ -125,33 +125,37 @@ AllowedIPs = 0.0.0.0/0
             self.assertFalse(mutation(inventory))
             return inventory
 
-        with patch.object(sys, 'argv', ['friends-vpn', 'revoke', 'friend']), \
-                patch.object(vpn.devices, 'update', side_effect=update), \
+        with patch.object(vpn.devices, 'update', side_effect=update), \
                 patch.object(vpn.devices, 'wait_for_gateway', side_effect=lambda check: self.assertTrue(check(inventory))), \
                 patch.object(vpn.manage, 'kube') as kube, redirect_stdout(io.StringIO()):
-            vpn.main()
+            vpn.main(['device', 'remove', 'friend'])
         self.assertFalse(exported.exists())
         self.assertTrue(exported.with_suffix('.conf.revoked').exists())
         self.assertEqual(inventory['peers'], {})
         self.assertEqual(inventory['retired'], {'friend': 'friend@example.com'})
         kube.assert_not_called()
 
-    def test_grouped_actions_accept_the_same_arguments_as_the_existing_commands(self):
+    def test_grouped_actions_dispatch_to_the_correct_operations(self):
         email = 'friend@example.com'
-        pairs = (
-            (['device', 'add', 'phone', '--email', email], ['add', 'phone', '--email', email]),
-            (['device', 'remove', 'phone'], ['revoke', 'phone']),
-            (['device', 'remove', '--email', email], ['revoke', '--email', email]),
-            (['device', 'list', '--email', email], ['list', '--email', email]),
-            (['user', 'add', email], ['invite', email]),
-            (['user', 'remove', email], ['offboard', email]),
+        cases = (
+            (['device', 'add', 'phone', '--email', email], {'command': 'add', 'name': 'phone', 'email': email}),
+            (['device', 'remove', 'phone'], {'command': 'revoke', 'name': 'phone', 'email': None}),
+            (['device', 'remove', '--email', email], {'command': 'revoke', 'name': None, 'email': email}),
+            (['device', 'list', '--email', email], {'command': 'list', 'email': email}),
+            (['user', 'add', email], {'command': 'invite', 'email': email}),
+            (['user', 'remove', email], {'command': 'offboard', 'email': email}),
         )
-        for grouped, existing in pairs:
-            with self.subTest(argv=grouped), patch.object(vpn, 'command') as command:
-                vpn.main(existing)
-                vpn.main(grouped)
-                original, new = command.call_args_list
-                self.assertEqual(original, new)
+        for argv, expected in cases:
+            with self.subTest(argv=argv), patch.object(vpn, 'command') as command:
+                vpn.main(argv)
+                self.assertEqual(vars(command.call_args.args[0]), expected)
+
+    def test_duplicate_top_level_commands_are_removed(self):
+        for name in ('add', 'revoke', 'list', 'invite', 'offboard'):
+            with self.subTest(name=name), redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    vpn.main([name, '--help'])
+                self.assertEqual(error.exception.code, 2)
 
     def test_user_list_reads_the_live_allowlist_without_showing_the_placeholder(self):
         config = {'account_id': 'a' * 32, 'application_id': '11111111-1111-4111-8111-111111111111',
