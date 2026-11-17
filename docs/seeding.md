@@ -59,7 +59,7 @@ peers arrive on `wg0` with their real source addresses preserved.
 Two independent layers enforce fail-closed VPN egress and private WebUI access:
 
 1. **Pod firewall:** defaults to deny, permits the exact encrypted VPN endpoint,
-   tunnel traffic and established replies, opens only the configured forwarded
+   tunnel traffic and WebUI replies, opens only the configured forwarded
    port on `wg0`, and allows new pod-network ingress only on WebUI port `8080`.
    IPv6 is blocked. If the tunnel fails or disappears, the rules remain in place.
 2. **Kubernetes `NetworkPolicy`:** `wireguard-egress` restricts pod egress to the
@@ -132,21 +132,33 @@ bandwidth limits; its server bitrate limit is a different setting.
 
 ## Local initializer verification (2026-11-17)
 
-`scripts/test-vpn-network.py` runs the shipped script in private mount and network
+`scripts/test-vpn-network.py` runs the shipped script in private network
 namespaces with synthetic WireGuard keys, a simulated provider and an
-unprivileged application. It requires `iproute2`, `iptables`, `wireguard-tools`,
-`nftables` and `util-linux`. Rootless runs also need subordinate UID/GID mappings
+unprivileged application. It requires `iproute2`, `wireguard-tools`, `nftables`
+and `util-linux`. Rootless runs also need subordinate UID/GID mappings
 and a recent `unshare`. It fails rather than skips if the fixture is unavailable.
 CI runs ordinary unit tests without root, then uses sudo only for this isolated
 packet fixture and loads the WireGuard kernel module explicitly.
 
 The fixture verified incoming TCP and UDP with original source IPs, tunneled DNS,
-unchanged private WebUI access, retry after route changes, endpoint outage and
-recovery, and denied direct egress even after a fallback route was introduced.
+unchanged private WebUI access, retry after route changes, and endpoint outage
+and recovery. A fallback route did not allow new flows or an established UDP
+flow to leave outside the tunnel.
 Application probes had zero effective capabilities; the initializer ran with
 only `NET_ADMIN`. These are local regression checks, not a new production
 forwarding or seeding measurement. The replacement admission policy's rendered
 templates and rejected privilege overrides also passed a disposable API server.
+
+## Live initializer verification (2026-11-17)
+
+The private WebUI and authenticated API returned successfully after rollout. The
+VPN initializer exited successfully before the qBittorrent container started.
+The torrent set retained all six original hashes. The gateway Secret had the
+same UID and data, and all claims retained their original backing volumes.
+
+qBittorrent reported `connected`, active DHT, `wg0`, and the existing reserved
+port. At the first post-rollout check, five torrents were uploading. The API
+reported 37 distinct public incoming peer IPs across five sampled torrents.
 
 ## Previous live trial verification (2026-11-16 UTC)
 
