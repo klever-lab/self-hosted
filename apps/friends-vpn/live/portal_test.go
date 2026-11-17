@@ -113,6 +113,13 @@ func TestPortalChecksIdentityAndOnlyReturnsConfirmedProfile(t *testing.T) {
 	first := assertion("one@example.com", audience)
 	second := assertion("two@example.com", audience)
 	input := enrollment{Name: "My phone", PublicKey: clientPublic}
+	if page := call("GET", "/", first, "", nil, 200); !strings.Contains(page, `href="/favicon.png"`) {
+		t.Fatal("the portal did not link to its favicon")
+	}
+	call("GET", "/favicon.png", "", "", nil, 401)
+	if icon := call("GET", "/favicon.png", first, "", nil, 200); !strings.HasPrefix(icon, "\x89PNG\r\n\x1a\n") {
+		t.Fatal("the favicon response was not a PNG")
+	}
 	call("GET", "/api/devices", "", "", nil, 401)
 	call("GET", "/api/devices", assertion("one@example.com", "other-app"), "", nil, 401)
 	call("PUT", path, first, "https://example.com", input, 403)

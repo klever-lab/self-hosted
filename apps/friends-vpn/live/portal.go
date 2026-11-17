@@ -19,7 +19,7 @@ import (
 
 const portalOrigin = "https://vpn.bahasadri.com"
 
-//go:embed web/index.html web/portal.css web/portal.js web/qrcode.mjs
+//go:embed web/index.html web/favicon.png web/portal.css web/portal.js web/qrcode.mjs
 var site embed.FS
 
 type portal struct {
@@ -76,6 +76,7 @@ func (p *portal) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
 	mux.HandleFunc("GET /{$}", p.asset("index.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("GET /favicon.png", p.asset("favicon.png", "image/png"))
 	mux.HandleFunc("GET /portal.css", p.asset("portal.css", "text/css; charset=utf-8"))
 	mux.HandleFunc("GET /portal.js", p.asset("portal.js", "text/javascript; charset=utf-8"))
 	mux.HandleFunc("GET /qrcode.mjs", p.asset("qrcode.mjs", "text/javascript; charset=utf-8"))
@@ -86,7 +87,7 @@ func (p *portal) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		mux.ServeHTTP(w, r)
 	})
 }
