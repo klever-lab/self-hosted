@@ -51,7 +51,8 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: sing-box
-          image: ghcr.io/klever-lab/self-hosted-friends-vpn@sha256:25e879df506d0a6af45bc09f64985f662ab58b6d28442f1c5168e7c88110d890
+          image: docker.io/library/alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
+          command: [/opt/friends-vpn/friends-vpn]
           args: [gateway]
           securityContext:
             allowPrivilegeEscalation: false
@@ -62,7 +63,7 @@ spec:
             limits: {cpu: "2", memory: 512Mi}
           ports: [{name: wireguard, containerPort: 51820, protocol: UDP}]
           readinessProbe:
-            exec: {command: [/friends-vpn, gateway-ready]}
+            exec: {command: [/opt/friends-vpn/friends-vpn, gateway-ready]}
             periodSeconds: 2
             timeoutSeconds: 2
           volumeMounts:

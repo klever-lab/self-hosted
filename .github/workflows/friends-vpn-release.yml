@@ -1,0 +1,39 @@
+name: Friends VPN release
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/friends-vpn/live/**', '.github/workflows/friends-vpn-release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test and build
+        run: |
+          docker build --tag friends-vpn-build apps/friends-vpn/live
+          build_container=$(docker create friends-vpn-build)
+          trap 'docker rm "$build_container" >/dev/null' EXIT
+          docker cp "$build_container:/friends-vpn" "$RUNNER_TEMP/friends-vpn"
+          gzip -n -9 -c "$RUNNER_TEMP/friends-vpn" > "$RUNNER_TEMP/friends-vpn-linux-amd64.gz"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_tag="friends-vpn-${GITHUB_SHA:0:12}"
+          release_asset="$RUNNER_TEMP/friends-vpn-linux-amd64.gz"
+          if ! gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$release_tag" "$release_asset" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title "Friends VPN ${GITHUB_SHA:0:12}" --latest=false \
+              --notes 'Linux amd64 executable. See apps/friends-vpn/live in the source archive for the build and licenses.'
+          fi
+          gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json tagName,assets --jq \
+            '{tag:.tagName, sha256:(.assets[]|select(.name=="friends-vpn-linux-amd64.gz")|.digest|ltrimstr("sha256:")), size:(.assets[]|select(.name=="friends-vpn-linux-amd64.gz")|.size)}' | tee "$GITHUB_STEP_SUMMARY"

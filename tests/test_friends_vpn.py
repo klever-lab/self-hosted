@@ -3,6 +3,7 @@
 import base64
 import configparser
 from contextlib import redirect_stdout
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -152,6 +153,25 @@ AllowedIPs = 0.0.0.0/0
                 patch.object(vpn.devices, 'seed') as seed:
             vpn.seed_inventory(state, None)
         seed.assert_not_called()
+
+    def test_release_verifies_the_archive_before_staging_immutable_parts(self):
+        data = b'fake archive'
+        pin = {'tag': 'friends-vpn-123456789abc', 'size': len(data),
+               'sha256': hashlib.sha256(data).hexdigest()}
+        with patch.object(vpn.release, 'CHUNK_SIZE', 5), \
+                patch.object(vpn.release, 'urlopen', return_value=io.BytesIO(data)), \
+                patch.object(vpn.manage, 'apply') as apply:
+            vpn.release.stage(pin)
+        maps = apply.call_args.args[0]
+        self.assertEqual(len(maps), 3)
+        self.assertTrue(all(item['immutable'] for item in maps))
+        self.assertEqual(b''.join(base64.b64decode(item['binaryData']['archive-part']) for item in maps), data)
+
+        with patch.object(vpn.release, 'urlopen', return_value=io.BytesIO(b'x' * len(data))), \
+                patch.object(vpn.manage, 'apply') as apply:
+            with self.assertRaisesRegex(ValueError, 'checksum'):
+                vpn.release.stage(pin)
+        apply.assert_not_called()
 
 
 if __name__ == '__main__':

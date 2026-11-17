@@ -17,6 +17,7 @@ from uuid import uuid4
 
 import friends_vpn_cloudflare as cloudflare
 import friends_vpn_inventory as devices
+import friends_vpn_release as release
 import manage
 
 NAMESPACE = 'friends-vpn'
@@ -216,17 +217,20 @@ def deploy(state, restore=None):
     address = provider_address(provider, state)
     config = json.dumps(configuration({**state, 'peers': {}}, provider, address), sort_keys=True)
     items = manage.objects((NAMESPACE,))
+    artifact = release.read()
+    release.mount(items, artifact)
     items.append(egress_policy(provider, address))
     items.append(api_egress_policy())
     manage.apply([obj for obj in items if obj['kind'] == 'Namespace'])
-    seed_inventory(state, restore)
     manage.apply([obj for obj in items if obj['kind'] not in ('Namespace', 'Deployment')])
-    manage.apply([manage.secret(NAMESPACE, NAMESPACE, {'config.json': config})])
     runtime = [obj for obj in items if obj['kind'] == 'Deployment']
     for obj in runtime:
         obj['spec']['template']['metadata']['annotations'] = {
             'self-hosted/config-sha256': hashlib.sha256(config.encode()).hexdigest()}
     manage.check_admission(runtime)
+    release.stage(artifact)
+    seed_inventory(state, restore)
+    manage.apply([manage.secret(NAMESPACE, NAMESPACE, {'config.json': config})])
     manage.apply(runtime)
     state['provider_endpoint'] = f'{provider["host"]}:{provider["port"]}'
     state['provider_address'] = address
@@ -392,12 +396,15 @@ def deploy_portal():
     settings = {'issuer': config['issuer'], 'audience': config['audience'],
                 'token': read_private(DIRECTORY / 'cloudflare-tunnel-token').strip()}
     items = manage.objects((NAMESPACE + '/portal',))
+    artifact = release.read()
+    release.mount(items, artifact)
     manage.apply([item for item in items if item['kind'] != 'Deployment'])
-    manage.apply([manage.secret(NAMESPACE, NAMESPACE + '-access', settings)])
     runtime = [item for item in items if item['kind'] == 'Deployment']
     runtime[0]['spec']['template']['metadata']['annotations'] = {
         'self-hosted/config-sha256': hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()}
     manage.check_admission(runtime)
+    release.stage(artifact)
+    manage.apply([manage.secret(NAMESPACE, NAMESPACE + '-access', settings)])
     manage.apply(runtime)
     manage.kube('-n', NAMESPACE, 'rollout', 'status', 'deployment/friends-vpn-portal', '--timeout=120s')
     print(f'Friends VPN portal: {cloudflare.URL}')
@@ -407,7 +414,9 @@ def command(args):
     if args.command in ('render', 'render-portal'):
         import yaml
         app = NAMESPACE + '/portal' if args.command == 'render-portal' else NAMESPACE
-        print(yaml.safe_dump_all(manage.objects((app,)), sort_keys=False))
+        items = manage.objects((app,))
+        release.mount(items, release.read())
+        print(yaml.safe_dump_all(items, sort_keys=False))
         return
     if args.command == 'setup-portal':
         config, token = cloudflare.setup(cloudflare_api())

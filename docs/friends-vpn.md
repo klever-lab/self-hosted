@@ -78,7 +78,9 @@ the Cloudflare dashboard, run `offboard` after removing the email from the polic
 The `friends-vpn` namespace uses restricted Pod Security. The gateway builds
 from pinned [sing-box](https://sing-box.sagernet.org/configuration/endpoint/wireguard/)
 with a small patch that applies peer changes to the running userspace WireGuard
-interface. The gateway and portal images are pinned by digest. Containers run
+interface. The CLI verifies the executable against the release pin before
+staging it in immutable ConfigMaps. Both Pods verify the staged release before
+starting it in a digest-pinned Alpine image. Containers run
 as UID/GID 1000 with no added capabilities, host namespaces, TUN devices, or
 writable root filesystems. Gateway and portal service accounts can access only
 the shared device Secret and gateway acknowledgement through their scoped
@@ -147,10 +149,11 @@ first switch from stock sing-box to the live updater replaces the gateway Pod
 once. If a connection retains the previous UDP mapping after that migration,
 toggle that device's WireGuard tunnel.
 
-The [image workflow](../.github/workflows/friends-vpn-image.yml) runs the
-userspace WireGuard test and publishes the gateway and portal binary. Pin its
-output digest in both application manifests when upgrading. The source for the
-gateway includes the upstream version and [peer update patch](../apps/friends-vpn/live/sing-box.patch).
+The [release workflow](../.github/workflows/friends-vpn-release.yml) runs the
+userspace WireGuard test and publishes the Linux amd64 executable. Update
+[the release pin](../apps/friends-vpn/release.json) with the workflow's tag,
+compressed size, and SHA-256 when upgrading. The source for the gateway includes
+the upstream version and [peer update patch](../apps/friends-vpn/live/sing-box.patch).
 
 ## Live verification
 

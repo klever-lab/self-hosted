@@ -121,8 +121,9 @@ and revocations take effect on the running WireGuard interface. See
 The portal runs beside the gateway on Guaranine. Its `cloudflared` container
 publishes `https://vpn.bahasadri.com` and Cloudflare Access sends one-time email
 codes to approved addresses. WireGuard clients keep using UDP `31820` on the
-controller. Guaranine's workers pull the portal and gateway image anonymously
-from the `klever-lab/self-hosted-friends-vpn` GitHub Container Registry package.
+controller. The CLI downloads the executable from the public repository's
+GitHub Releases, verifies its pinned SHA-256, and stages it in Kubernetes.
+The gateway and portal run that executable in a digest-pinned Alpine image.
 
 1. Confirm that the Cloudflare account owns the active `bahasadri.com` DNS zone
    and its Zero Trust team has the One-time PIN login method. Create a scoped
