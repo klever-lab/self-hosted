@@ -109,8 +109,7 @@ def enroll(namespace):
 
 def vpn(cfg):
     peer_port = cfg.get('qbittorrent_forwarded_port', 6881)
-    # 8000 and 9999 are Gluetun's loopback control/health servers, and 8080 is the WebUI.
-    if type(peer_port) is not int or not 1024 <= peer_port <= 65535 or peer_port in (8000, 8080, 9999):
+    if type(peer_port) is not int or not 1024 <= peer_port <= 65535 or peer_port == 8080:
         raise ValueError('qbittorrent_forwarded_port must be an available port from 1024 to 65535')
     profile_path = Path(cfg['wireguard_profile']).expanduser().resolve()
     if profile_path.is_relative_to(ROOT):
@@ -120,8 +119,19 @@ def vpn(cfg):
     profile = configparser.ConfigParser()
     profile.optionxform = str
     profile.read(profile_path)
+    for section, name in (('Interface', 'PrivateKey'), ('Peer', 'PublicKey'), ('Peer', 'PresharedKey')):
+        if name == 'PresharedKey' and name not in profile[section]:
+            continue
+        try:
+            valid = len(base64.b64decode(profile[section][name].strip(), validate=True)) == 32
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError('WireGuard profiles require valid 32-byte keys')
     endpoint = profile['Peer']['Endpoint']
     host, port = endpoint.rsplit(':', 1)
+    if not 1 <= int(port) <= 65535:
+        raise ValueError('The WireGuard endpoint port must be from 1 to 65535')
     # Refresh the resolved IP when the endpoint or forwarded port changes so Windscribe
     # establishes a fresh WireGuard session instead of keeping a pre-forward peer state.
     forwarded = cfg.get('qbittorrent_forwarded_port')
@@ -133,7 +143,7 @@ def vpn(cfg):
         candidates = [item[4][0] for item in socket.getaddrinfo(host, int(port), socket.AF_INET, socket.SOCK_DGRAM)]
         previous_ip = cfg.get('wireguard_endpoint_ip') if cfg.get('wireguard_endpoint') == endpoint and port_changed else None
         address = next((ip for ip in candidates if ip != previous_ip), candidates[0])
-    if not ipaddress.ip_address(address).is_global:
+    if not ipaddress.IPv4Address(address).is_global:
         raise ValueError('The VPN endpoint must have a public address')
     cfg['wireguard_endpoint'] = endpoint
     cfg['wireguard_endpoint_ip'] = address
@@ -141,12 +151,11 @@ def vpn(cfg):
         cfg.pop('wireguard_forwarded_port', None)
     else:
         cfg['wireguard_forwarded_port'] = forwarded
-    private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
-    tunnel_address = next(x.strip() for x in profile['Interface']['Address'].split(',') if ':' not in x)
+    tunnel_address = str(ipaddress.IPv4Interface(next(
+        x.strip() for x in profile['Interface']['Address'].split(',') if ':' not in x)))
     lines = [
         '[Interface]',
         'PrivateKey = ' + profile['Interface']['PrivateKey'].strip(),
-        'Address = ' + tunnel_address,
         '',
         '[Peer]',
         'PublicKey = ' + profile['Peer']['PublicKey'].strip(),
@@ -154,6 +163,8 @@ def vpn(cfg):
     if 'PresharedKey' in profile['Peer']:
         lines.append('PresharedKey = ' + profile['Peer']['PresharedKey'].strip())
     lines.append(f'Endpoint = {address}:{int(port)}')
+    lines.extend(['AllowedIPs = 0.0.0.0/0', 'PersistentKeepalive = 25'])
+    private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
     vpn_input_ports = str(peer_port) if 'qbittorrent_forwarded_port' in cfg else ''
     policy = {'apiVersion': 'networking.k8s.io/v1', 'kind': 'NetworkPolicy',
         'metadata': {'name': 'wireguard-egress', 'namespace': 'qbittorrent'},
@@ -161,9 +172,12 @@ def vpn(cfg):
                  'egress': [{'to': [{'ipBlock': {'cidr': address + '/32'}}],
                              'ports': [{'protocol': 'UDP', 'port': int(port)}]}]}}
     return secret('qbittorrent', 'wireguard', {
-        'wg0.conf': '\n'.join(lines) + '\n',
+        'wg.conf': '\n'.join(lines) + '\n',
+        'address': tunnel_address,
+        'endpoint-address': address,
+        'endpoint-port': str(int(port)),
         'peer-port': str(peer_port),
-        'vpn-input-ports': vpn_input_ports,
+        'forwarded-port': vpn_input_ports,
     }), policy
 
 
@@ -314,7 +328,9 @@ def deploy(cfg, selected):
     if 'qbittorrent' in selected:
         vpn_items = list(vpn(cfg))
         apply(vpn_items)
-        fingerprints['qbittorrent'] = hashlib.sha256((fingerprints['qbittorrent'] + json.dumps(vpn_items, sort_keys=True)).encode()).hexdigest()
+        fingerprints['qbittorrent'] = hashlib.sha256(
+            (fingerprints['qbittorrent'] + json.dumps(vpn_items, sort_keys=True)).encode()
+            + (ROOT / 'apps/qbittorrent/network.sh').read_bytes()).hexdigest()
     if {'qbittorrent', 'calibre-web'} <= set(selected):
         apply([secret('qbittorrent', 'book-importer', {
             'qbt-username': access['qbittorrent']['username'], 'qbt-password': access['qbittorrent']['password'],

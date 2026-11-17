@@ -7,12 +7,10 @@ Kubernetes identity Secrets. Guaranine's control plane remains dedicated to plat
 Applications use single replicas and Recreate deployments so updates do not
 start multiple writers against their state.
 
-The qBittorrent pod runs Gluetun (`vpn` sidecar) in kernel WireGuard mode (`wg0`)
-with a 512 MiB memory limit. Only the `vpn` sidecar receives `CAP_NET_ADMIN` inside
-the pod's isolated network namespace; `qbittorrent` and all other containers remain
-non-root (`UID 1000`) with read-only root filesystems and all capabilities dropped.
-Check the `vpn` init container's restart count and health status when investigating
-connectivity drops.
+qBittorrent retains its kernel WireGuard interface and original peer addresses.
+Its [short-lived network initializer](seeding.md#vpn-routing-and-pod-security)
+finishes before the application starts. Inspect that init container's logs and
+completion status when startup stops before qBittorrent becomes Ready.
 
 qBittorrent has a 4 GiB memory limit and a 512 MiB request. Its pinned
 libtorrent 1.2 build uses an explicit 2048 MiB disk cache, set by the deployment
@@ -46,13 +44,9 @@ limited to three. The configuration volume preserves these values.
 The plan agreed on 2026-11-16 is to trial Windscribe's
 [ephemeral port forwarding](https://windscribe.com/knowledge-base/articles/what-is-ephemeral-port-forwarding-and-how-to-use-it)
 first. Pro accounts include one temporary forward, which expires after seven
-days; record its port and expiry in protected operator storage. Gluetun brings up
-the kernel WireGuard `wg0` interface with its kill-switch firewall opening only
-the forwarded port on `wg0` (`FIREWALL_VPN_INPUT_PORTS`), while qBittorrent binds
-peer traffic directly to `wg0`. The pod's internet egress remains restricted to
-its WireGuard server by both Gluetun's firewall and Kubernetes `NetworkPolicy`,
-and the WebUI remains private. See [seeding operations](seeding.md) for the
-routing details and live checks.
+days; record its port and expiry in protected operator storage. See
+[seeding operations](seeding.md) for tunnel, firewall and peer-address behavior,
+the local regression checks and the separate live-trial history.
 
 Verify the forwarded peer port from outside the VPN and compare uploaded bytes
 over comparable periods with the same torrents and queue settings. If incoming

@@ -5,7 +5,7 @@ Kubernetes platform; this repository owns application deployments and integratio
 
 - Keep services independently deployable under apps/. Use upstream images pinned
   by digest and restricted Pod Security. qBittorrent's admission policy enforces
-  its namespace with one pinned Gluetun sidecar exception; keep that policy and
+  its namespace with one pinned, short-lived network initializer exception; keep that policy and
   binding active and verify changes with scripts/check_admission.py.
 - Keep credentials, VPN profiles, state, and backups outside Git. The operator
   directory defaults to ~/.local/state/self-hosted with private permissions.

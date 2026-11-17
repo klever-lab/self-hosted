@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import manage
 
+PRIVATE = base64.b64encode(bytes(range(32))).decode()
+PUBLIC = base64.b64encode(bytes(reversed(range(32)))).decode()
+PRESHARED = base64.b64encode(b'x' * 32).decode()
 
 class VPNEndpointTests(unittest.TestCase):
     def setUp(self):
@@ -23,14 +26,14 @@ class VPNEndpointTests(unittest.TestCase):
         self.addCleanup(temp.cleanup)
         self.state = Path(temp.name)
         profile = self.state / 'wireguard.conf'
-        profile.write_text('''[Interface]
-PrivateKey = test-private-key
+        profile.write_text(f'''[Interface]
+PrivateKey = {PRIVATE}
 Address = 10.64.0.2/32, fd00::2/128
 DNS = 10.255.255.3
 
 [Peer]
-PublicKey = test-public-key
-PresharedKey = test-preshared-key
+PublicKey = {PUBLIC}
+PresharedKey = {PRESHARED}
 Endpoint = new-vpn.example:443
 ''')
         profile.chmod(0o600)
@@ -42,15 +45,16 @@ Endpoint = new-vpn.example:443
     def parse_wg(self, secret):
         parser = configparser.ConfigParser()
         parser.optionxform = str
-        parser.read_string(base64.b64decode(secret['data']['wg0.conf']).decode())
+        parser.read_string(base64.b64decode(secret['data']['wg.conf']).decode())
         return parser
 
     def assert_endpoint(self, secret, policy, address):
         wg = self.parse_wg(secret)
-        self.assertEqual(wg['Interface']['PrivateKey'], 'test-private-key')
-        self.assertEqual(wg['Interface']['Address'], '10.64.0.2/32')
-        self.assertEqual(wg['Peer']['PublicKey'], 'test-public-key')
-        self.assertEqual(wg['Peer']['PresharedKey'], 'test-preshared-key')
+        self.assertEqual(wg['Interface']['PrivateKey'], PRIVATE)
+        self.assertEqual(base64.b64decode(secret['data']['address']), b'10.64.0.2/32')
+        self.assertNotIn('Address', wg['Interface'])
+        self.assertEqual(wg['Peer']['PublicKey'], PUBLIC)
+        self.assertEqual(wg['Peer']['PresharedKey'], PRESHARED)
         self.assertEqual(wg['Peer']['Endpoint'], f'{address}:443')
         self.assertEqual(policy['spec']['egress'], [{
             'to': [{'ipBlock': {'cidr': address + '/32'}}],
@@ -88,7 +92,7 @@ Endpoint = new-vpn.example:443
             secret, policy = manage.vpn(self.cfg)
         resolve.assert_called_once_with('new-vpn.example', 443, socket.AF_INET, socket.SOCK_DGRAM)
         self.assertEqual(base64.b64decode(secret['data']['peer-port']), b'10837')
-        self.assertEqual(base64.b64decode(secret['data']['vpn-input-ports']), b'10837')
+        self.assertEqual(base64.b64decode(secret['data']['forwarded-port']), b'10837')
         self.assert_endpoint(secret, policy, '1.1.1.1')
         saved = json.loads((self.state / 'config.json').read_text())
         self.assertEqual(saved['wireguard_forwarded_port'], 10837)
@@ -99,12 +103,20 @@ Endpoint = new-vpn.example:443
         self.cfg['wireguard_endpoint'] = 'new-vpn.example:443'
         secret, _ = manage.vpn(self.cfg)
         self.assertEqual(base64.b64decode(secret['data']['peer-port']), b'6881')
-        self.assertEqual(base64.b64decode(secret['data']['vpn-input-ports']), b'')
+        self.assertEqual(base64.b64decode(secret['data']['forwarded-port']), b'')
 
     def test_invalid_or_conflicting_peer_port_cannot_change_configuration(self):
-        for port in (True, '10837', -1, 0, 53, 8000, 8080, 9999, 65536):
+        for port in (True, '10837', -1, 0, 53, 8080, 65536):
             with self.subTest(port=port), self.assertRaisesRegex(ValueError, 'forwarded_port'):
                 manage.vpn(dict(self.cfg, qbittorrent_forwarded_port=port))
+        self.assertFalse((self.state / 'config.json').exists())
+
+    def test_bad_keys_are_rejected_without_printing_them_or_updating_state(self):
+        profile = Path(self.cfg['wireguard_profile'])
+        profile.write_text(profile.read_text().replace(PRIVATE, 'invalid-private-material'))
+        with self.assertRaisesRegex(ValueError, '32-byte keys') as error:
+            manage.vpn(self.cfg)
+        self.assertNotIn('invalid-private-material', str(error.exception))
         self.assertFalse((self.state / 'config.json').exists())
 
     def test_qbittorrent_remains_unprivileged_and_bound_to_wg0(self):
@@ -129,7 +141,13 @@ Endpoint = new-vpn.example:443
         vpn_sec = containers['vpn']['securityContext']
         self.assertFalse(vpn_sec['allowPrivilegeEscalation'])
         self.assertNotIn('privileged', vpn_sec)
-        self.assertEqual(vpn_sec['capabilities'], {'drop': ['ALL'], 'add': ['NET_ADMIN', 'NET_BIND_SERVICE']})
+        self.assertEqual(vpn_sec['capabilities'], {'drop': ['ALL'], 'add': ['NET_ADMIN']})
+        self.assertTrue(vpn_sec['readOnlyRootFilesystem'])
+        self.assertNotIn('restartPolicy', containers['vpn'])
+        self.assertNotIn('env', containers['vpn'])
+        self.assertEqual([c['name'] for c in spec['containers']], ['qbittorrent'])
+        port_volume = next(v for v in spec['volumes'] if v['name'] == 'peer-port')
+        self.assertEqual(port_volume['secret']['items'], [{'key': 'peer-port', 'path': 'peer-port'}])
         bootstrap = (ROOT / 'apps/qbittorrent/bootstrap.py').read_text()
         self.assertIn("'Session\\\\Interface': 'wg0'", bootstrap)
         self.assertIn("'Session\\\\InterfaceName': 'wg0'", bootstrap)

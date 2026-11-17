@@ -27,38 +27,22 @@ spec:
         object.metadata.labels['app'] == 'qbittorrent' && has(object.spec.initContainers) ?
         object.spec.initContainers.filter(c,
           c.name == 'vpn' &&
-          c.image == 'qmcgaw/gluetun:v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027' &&
-          has(c.restartPolicy) && c.restartPolicy == 'Always' &&
-          has(c.command) && c.command == ['/bin/sh', '-ec',
-            'ip rule del table 51820 2>/dev/null || true; ip -6 rule del table 51820 2>/dev/null || true; exec /gluetun-entrypoint'] &&
+          c.image == 'ghcr.io/linuxserver/wireguard@sha256:10db56ad834f94541307d5dfdbe87370e26d155bb341a5bf65789f970f24ab5c' &&
+          !has(c.restartPolicy) &&
+          has(c.command) && c.command == ['/bin/sh', '/network/network.sh'] &&
           (!has(c.args) || size(c.args) == 0) && !has(c.envFrom) &&
+          (!has(c.env) || size(c.env) == 0) &&
           !has(c.lifecycle) && !has(c.livenessProbe) && !has(c.volumeDevices) &&
-          has(c.startupProbe) && has(c.startupProbe.exec) &&
-          c.startupProbe.exec.command == ['/gluetun-entrypoint', 'healthcheck'] &&
-          has(c.readinessProbe) && has(c.readinessProbe.exec) &&
-          c.readinessProbe.exec.command == ['/gluetun-entrypoint', 'healthcheck'] &&
-          has(c.env) && c.env.all(e,
-            e.name in ['VPN_SERVICE_PROVIDER', 'VPN_TYPE', 'VPN_INTERFACE',
-              'WIREGUARD_IMPLEMENTATION', 'WIREGUARD_CONF_SECRETFILE', 'WIREGUARD_MTU',
-              'WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL', 'FIREWALL_INPUT_PORTS',
-              'FIREWALL_VPN_INPUT_PORTS', 'BLOCK_MALICIOUS', 'HEALTH_SMALL_CHECK_TYPE',
-              'HTTP_CONTROL_SERVER_ADDRESS', 'PUBLICIP_ENABLED', 'PUID', 'PGID', 'TZ'] &&
-            size(c.env.filter(other, other.name == e.name)) == 1) &&
-          c.env.exists(e, e.name == 'VPN_SERVICE_PROVIDER' && has(e.value) && e.value == 'custom') &&
-          c.env.exists(e, e.name == 'VPN_TYPE' && has(e.value) && e.value == 'wireguard') &&
-          c.env.exists(e, e.name == 'WIREGUARD_CONF_SECRETFILE' && has(e.value) && e.value == '/etc/vpn/wg0.conf') &&
-          c.env.exists(e, e.name == 'WIREGUARD_IMPLEMENTATION' && has(e.value) && e.value == 'kernelspace') &&
-          c.env.exists(e, e.name == 'VPN_INTERFACE' && has(e.value) && e.value == 'wg0') &&
-          c.env.exists(e, e.name == 'FIREWALL_INPUT_PORTS' && has(e.value) && e.value == '8080') &&
-          c.env.exists(e, e.name == 'HTTP_CONTROL_SERVER_ADDRESS' && has(e.value) && e.value == '127.0.0.1:8000') &&
-          c.env.exists(e, e.name == 'FIREWALL_VPN_INPUT_PORTS' && has(e.valueFrom) &&
-            has(e.valueFrom.secretKeyRef) && e.valueFrom.secretKeyRef.name == 'wireguard' &&
-            e.valueFrom.secretKeyRef.key == 'vpn-input-ports') &&
-          has(c.volumeMounts) && size(c.volumeMounts) == 1 &&
-          c.volumeMounts.all(m, m.name == 'wireguard' && m.mountPath == '/etc/vpn' &&
-            has(m.readOnly) && m.readOnly && !has(m.subPath) && !has(m.subPathExpr)) &&
-          has(object.spec.volumes) && object.spec.volumes.exists(v,
-            v.name == 'wireguard' && has(v.secret) && v.secret.secretName == 'wireguard')
+          !has(c.startupProbe) && !has(c.readinessProbe) &&
+          has(c.volumeMounts) && size(c.volumeMounts) == 2 &&
+          c.volumeMounts.all(m,
+            !has(m.subPath) && !has(m.subPathExpr) &&
+            ((m.name == 'wireguard' && m.mountPath == '/etc/vpn' && has(m.readOnly) && m.readOnly) ||
+             (m.name == 'network' && m.mountPath == '/network' && has(m.readOnly) && m.readOnly))) &&
+          has(object.spec.volumes) &&
+          object.spec.volumes.exists(v, v.name == 'wireguard' && has(v.secret) && v.secret.secretName == 'wireguard') &&
+          object.spec.volumes.exists(v, v.name == 'network' && has(v.configMap) &&
+            v.configMap.name == 'qbittorrent-network' && !has(v.configMap.items))
         ).map(c, c.name) : []
     - name: ordinary
       expression: variables.containers.filter(c, !(c.name in variables.vpnNames))
@@ -88,6 +72,7 @@ spec:
           has(c.securityContext) &&
           (!has(c.securityContext.privileged) || !c.securityContext.privileged) &&
           has(c.securityContext.allowPrivilegeEscalation) && !c.securityContext.allowPrivilegeEscalation &&
+          has(c.securityContext.readOnlyRootFilesystem) && c.securityContext.readOnlyRootFilesystem &&
           has(c.securityContext.capabilities) && has(c.securityContext.capabilities.drop) &&
           'ALL' in c.securityContext.capabilities.drop &&
           c.image.matches('^.+@sha256:[0-9a-f]{64}$') &&
@@ -107,8 +92,8 @@ spec:
           has(c.securityContext.runAsUser) && c.securityContext.runAsUser == 0 &&
           has(c.securityContext.runAsGroup) && c.securityContext.runAsGroup == 0 &&
           has(c.securityContext.capabilities.add) &&
-          c.securityContext.capabilities.add.all(cap, cap in ['NET_ADMIN', 'NET_BIND_SERVICE']))
-      message: Only the pinned, configured Gluetun native sidecar may run as root or add NET_ADMIN/NET_BIND_SERVICE; other containers require read-only roots and no added capabilities.
+          c.securityContext.capabilities.add == ['NET_ADMIN'])
+      message: Only the pinned, short-lived network initializer may run as root with NET_ADMIN; running application containers have no added capabilities.
     - expression: >-
         variables.contexts.all(s,
           (!has(s.seccompProfile) || s.seccompProfile.type == 'RuntimeDefault') &&

@@ -9,9 +9,12 @@ renewal.
 
 ## VPN routing and pod security
 
-Gluetun runs as a native sidecar (`vpn`) using kernel WireGuard (`wg0`, MTU `1120`
-for Flannel-over-Tailscale headroom) inside the qBittorrent pod's network
-namespace. Built-in Pod Security Admission cannot express a per-container
+The ordinary init container `vpn` configures kernel WireGuard (`wg0`, MTU `1120`
+for Flannel-over-Tailscale headroom) and the Pod's firewall, waits for a handshake,
+then **exits before qBittorrent starts**. There is no elevated VPN daemon, local
+DNS daemon or HTTP control server alongside the application. The kernel retains
+the tunnel and handles handshakes and transient WAN recovery. DNS uses the tunnel.
+Built-in Pod Security Admission cannot express a per-container
 exception, so the namespace retains `enforce: privileged` with restricted audit
 and warnings. The enforcing `self-hosted-qbittorrent-security`
 [admission policy](https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/)
@@ -20,19 +23,19 @@ debug-container update. Controller-created Pods receive the same checks.
 The binding denies violations and the policy fails closed on evaluation errors.
 Within the pod:
 
-- `vpn` (Gluetun) drops all capabilities except `NET_ADMIN` and
-  `NET_BIND_SERVICE`, sets `allowPrivilegeEscalation: false`, and uses no
-  `privileged` mode, `hostPath`, or host namespaces.
+- The short-lived `vpn` initializer runs as root with only `NET_ADMIN`, a read-only
+  root filesystem and no API token, application volume or writable script mount.
+  It has no restart-as-sidecar setting and receives only read-only mounts of the
+  VPN configuration and its setup script.
 - `qbittorrent`, `configure`, and `webui` run as non-root `UID/GID 1000` with
   `allowPrivilegeEscalation: false`, `readOnlyRootFilesystem: true`,
   `seccompProfile: RuntimeDefault`, and `capabilities: {drop: [ALL]}`.
 
-The exception requires the native init sidecar named `vpn`, its exact Gluetun
-image digest, startup command and health probes, an allowlist of environment
-variables, kernelspace `wg0`, and its sole read-only VPN Secret mount, in a Pod
-labeled `app: qbittorrent`. Extra command hooks, imported/duplicate environment
-variables and a public control server are rejected. It permits root and only the
-two listed capabilities. Every container still forbids privileged mode and
+The exception requires the initializer named `vpn`, its exact upstream tools
+image digest, startup command and prescribed mounts in a Pod labeled
+`app: qbittorrent`. Persistent sidecars, environment injection, hooks, probes,
+extra capabilities and application-data mounts are rejected. Every container
+forbids privileged mode and
 privilege escalation. Other containers require non-root user/group IDs,
 read-only root filesystems, and no added capabilities. The policy also blocks
 host namespaces, host ports/mounts, shared process namespaces, alternate runtimes,
@@ -44,7 +47,7 @@ namespace's built-in enforcement is privileged. Deployment installs the policy
 before changing namespace labels, waits for successful type checking, verifies
 an actual denial, and dry-runs Pod templates before applying controllers. A new
 namespace starts restricted until that denial proves the custom guard is active.
-When updating Gluetun's digest, command, or mount, update its admission exception
+When updating the initializer's digest, command, or mounts, update its admission exception
 together and run `scripts/check_admission.py` as described in [setup](../SETUP.md#tests).
 Application service accounts have no permissions to modify these cluster policies.
 
@@ -55,14 +58,25 @@ peers arrive on `wg0` with their real source addresses preserved.
 
 Two independent layers enforce fail-closed VPN egress and private WebUI access:
 
-1. **Gluetun firewall:** blocks non-tunnel internet egress, opens only the
-   configured forwarded port on `wg0` (`FIREWALL_VPN_INPUT_PORTS`, empty when no
-   forward is configured), and allows pod-network ingress only on WebUI port `8080`
-   (`FIREWALL_INPUT_PORTS=8080`).
+1. **Pod firewall:** defaults to deny, permits the exact encrypted VPN endpoint,
+   tunnel traffic and established replies, opens only the configured forwarded
+   port on `wg0`, and allows new pod-network ingress only on WebUI port `8080`.
+   IPv6 is blocked. If the tunnel fails or disappears, the rules remain in place.
 2. **Kubernetes `NetworkPolicy`:** `wireguard-egress` restricts pod egress to the
    resolved WireGuard server UDP endpoint, while `qbittorrent-web` and
    `jellyfin-importer-api` restrict TCP `8080` ingress to `edge`, `book-importer`,
    and Jellyfin's `torrent-importer`.
+
+The setup script is [network.sh](../apps/qbittorrent/network.sh). Its rollout
+fingerprint changes when the script changes, so deployment reruns initialization.
+`configure` receives only the peer-port key; only `vpn` mounts the private VPN key.
+Application/session volumes and enrolled gateway identities are preserved.
+
+Maintaining native incoming TCP/UDP and original peer addresses is a requirement.
+A userspace connection proxy would alter that behavior. The remaining temporary
+network capability sets up the kernel path; it is not present in the running
+application. Root filesystem and kernel/runtime vulnerabilities remain separate
+security boundaries, documented in Guaranine's escalation audit.
 
 During the trial, the existing VPN endpoint did not apply the new reservation;
 switching to another resolved endpoint activated incoming connectivity. When
@@ -83,9 +97,10 @@ After deployment, verify:
 3. External incoming TCP (BitTorrent handshake) and incoming UDP (DHT ping/reply)
    to Windscribe's public VPN IP on the forwarded port from outside the VPN, with
    port `8080` unreachable on that public VPN IP.
-4. Blocked internet egress when bypassing `wg0` (`eth0` bind) or when the VPN
-   tunnel is stopped, followed by automatic listener recovery when the tunnel
-   resumes.
+4. Blocked internet egress when bypassing `wg0` (`eth0` bind) or while the VPN
+   endpoint is unavailable, followed by automatic recovery when it returns.
+   Deliberately removing the tunnel requires recreating the Pod; no privileged
+   daemon remains to reconstruct interfaces after administrator changes.
 
 Record upload counters and elapsed time before and after the trial in protected
 operator storage. Compare the same torrents and queue settings over substantial,
@@ -115,7 +130,23 @@ can increase random disk reads and interfere with Jellyfin before network
 capacity is exhausted. Jellyfin's public Funnel path has separate provider
 bandwidth limits; its server bitrate limit is a different setting.
 
-## Live trial verification (2026-11-16 UTC)
+## Local initializer verification (2026-11-17)
+
+`tests/test_vpn_network.py` runs the shipped script in private user, mount and
+network namespaces with synthetic WireGuard keys, a simulated provider and an
+unprivileged application. It requires `iproute2`, `iptables`, `wireguard-tools`,
+`nftables`, `util-linux` and subordinate UID/GID mappings; it fails rather than skips if the
+fixture is unavailable. CI installs the tools and runs it with the unit suite.
+
+The fixture verified incoming TCP and UDP with original source IPs, tunneled DNS,
+unchanged private WebUI access, retry after route changes, endpoint outage and
+recovery, and denied direct egress even after a fallback route was introduced.
+Application probes had zero effective capabilities; the initializer ran with
+only `NET_ADMIN`. These are local regression checks, not a new production
+forwarding or seeding measurement. The replacement admission policy's rendered
+templates and rejected privilege overrides also passed a disposable API server.
+
+## Previous live trial verification (2026-11-16 UTC)
 
 Verified on the live `qbittorrent` deployment with ephemeral Matching Port `10837`
 (approximate expiry `2026-11-23T13:48:00Z`):

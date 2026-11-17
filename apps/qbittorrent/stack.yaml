@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   name: qbittorrent
   labels:
-    # security.yaml enforces container restrictions with one pinned Gluetun exception.
+    # security.yaml permits one short-lived network initializer, never a root sidecar.
     # Built-in Pod Security Admission cannot express that per-container exception.
     pod-security.kubernetes.io/enforce: privileged
     pod-security.kubernetes.io/enforce-version: latest
@@ -67,7 +67,8 @@ spec:
       terminationGracePeriodSeconds: 1800
       dnsPolicy: None
       dnsConfig:
-        nameservers: [127.0.0.1]
+        # The kernel tunnel carries DNS too; no privileged local DNS service.
+        nameservers: [1.1.1.1]
         options: [{name: ndots, value: "1"}]
       securityContext:
         runAsNonRoot: true
@@ -90,50 +91,25 @@ spec:
             - {name: downloads, mountPath: /downloads}
             - {name: bootstrap, mountPath: /bootstrap, readOnly: true}
             - {name: credentials, mountPath: /credentials, readOnly: true}
-            - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
+            - {name: peer-port, mountPath: /etc/vpn, readOnly: true}
         - name: vpn
-          restartPolicy: Always
-          image: qmcgaw/gluetun:v3.41.3@sha256:fa19cc76b2af13d57a8d3dc3066f2ada061b1c761b8aecf989b3877c0486e027
-          command: [/bin/sh, -ec, 'ip rule del table 51820 2>/dev/null || true; ip -6 rule del table 51820 2>/dev/null || true; exec /gluetun-entrypoint']
-          env:
-            - {name: VPN_SERVICE_PROVIDER, value: custom}
-            - {name: VPN_TYPE, value: wireguard}
-            - {name: VPN_INTERFACE, value: wg0}
-            - {name: WIREGUARD_IMPLEMENTATION, value: kernelspace}
-            - {name: WIREGUARD_CONF_SECRETFILE, value: /etc/vpn/wg0.conf}
-            # Flannel over Tailscale gives pods 1230-byte interfaces; keep headroom for outer WireGuard headers.
-            - {name: WIREGUARD_MTU, value: "1120"}
-            - {name: WIREGUARD_PERSISTENT_KEEPALIVE_INTERVAL, value: 25s}
-            - {name: FIREWALL_INPUT_PORTS, value: "8080"}
-            - {name: FIREWALL_VPN_INPUT_PORTS, valueFrom: {secretKeyRef: {name: wireguard, key: vpn-input-ports}}}
-            - {name: BLOCK_MALICIOUS, value: "off"}
-            - {name: HEALTH_SMALL_CHECK_TYPE, value: dns}
-            - {name: HTTP_CONTROL_SERVER_ADDRESS, value: "127.0.0.1:8000"}
-            - {name: PUBLICIP_ENABLED, value: "off"}
-            - {name: PUID, value: "0"}
-            - {name: PGID, value: "0"}
-            - {name: TZ, value: America/New_York}
+          image: ghcr.io/linuxserver/wireguard@sha256:10db56ad834f94541307d5dfdbe87370e26d155bb341a5bf65789f970f24ab5c
+          command: [/bin/sh, /network/network.sh]
           securityContext:
             runAsNonRoot: false
             runAsUser: 0
             runAsGroup: 0
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: [ALL]
-              add: [NET_ADMIN, NET_BIND_SERVICE]
+              add: [NET_ADMIN]
           resources:
             requests: {cpu: 25m, memory: 64Mi}
             limits: {cpu: "1", memory: 512Mi}
-          startupProbe:
-            exec: {command: [/gluetun-entrypoint, healthcheck]}
-            periodSeconds: 2
-            failureThreshold: 30
-          readinessProbe:
-            exec: {command: [/gluetun-entrypoint, healthcheck]}
-            periodSeconds: 10
-            timeoutSeconds: 5
           volumeMounts:
             - {name: wireguard, mountPath: /etc/vpn, readOnly: true}
+            - {name: network, mountPath: /network, readOnly: true}
         - name: webui
           image: ghcr.io/qbittorrent/docker-qbittorrent-nox:5.3.0-1@sha256:58ca75cb969c5185b7ad72fe877d9de1dc6891d0aef9d2ee20d0556b1d6ec3f9
           command: [python3, /bootstrap/install_webui.py]
@@ -172,6 +148,11 @@ spec:
             - {name: downloads, mountPath: /downloads}
             - {name: tmp, mountPath: /tmp}
       volumes:
+        - {name: network, configMap: {name: qbittorrent-network}}
+        - name: peer-port
+          secret:
+            secretName: wireguard
+            items: [{key: peer-port, path: peer-port}]
         - {name: config, persistentVolumeClaim: {claimName: config}}
         - {name: downloads, persistentVolumeClaim: {claimName: downloads}}
         - {name: bootstrap, configMap: {name: qbittorrent-bootstrap}}

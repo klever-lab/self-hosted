@@ -160,8 +160,8 @@ For an incoming-peer port trial, reserve a **Matching Port** under the Windscrib
 Pro account's **Port Forwarding** page. Add `qbittorrent_forwarded_port` with that
 integer port to the protected `config.json`, then run
 `./self-hosted deploy qbittorrent`. Both the VPN firewall and qBittorrent's
-bound `wg0` peer listener use that number. Ports 8000, 8080, and 9999 are reserved
-for Gluetun's local control/health servers and the WebUI. Keep the WireGuard profile
+bound `wg0` peer listener use that number. Port 8080 is reserved for the WebUI.
+Keep the WireGuard profile
 and account credentials outside Git.
 Ephemeral reservations expire after seven days; record the deadline in
 `qbittorrent_forward_expires_at` (UTC ISO 8601) in the same protected file. This
@@ -231,7 +231,7 @@ On Linux, install `bubblewrap`, `shellcheck` and an `awk` implementation, then r
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with-requirements requirements.txt python -m unittest discover -s tests -v
-shellcheck integrations/kobo/*.sh
+shellcheck integrations/kobo/*.sh apps/qbittorrent/network.sh
 ```
 
 The Kobo tests enforce NickelMenu 0.6.0's timeout limits and execute the shipped

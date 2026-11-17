@@ -3,6 +3,9 @@ kind: Kustomization
 namespace: qbittorrent
 resources: [security.yaml, stack.yaml, files.yaml, ../../components/edge]
 configMapGenerator:
+  - name: qbittorrent-network
+    files: [network.sh]
+    options: {disableNameSuffixHash: true}
   - name: qbittorrent-bootstrap
     files: [bootstrap.py, install_webui.py, vuetorrent.json]
   - name: download-files
