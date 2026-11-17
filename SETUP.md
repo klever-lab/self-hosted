@@ -234,6 +234,13 @@ PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with-requirements requirements.t
 shellcheck integrations/kobo/*.sh apps/qbittorrent/network.sh
 ```
 
+Also run the [isolated VPN packet fixture](docs/seeding.md#local-initializer-verification-2026-11-17)
+with its listed tools installed:
+
+```bash
+uv run --no-project --with-requirements requirements.txt python scripts/test-vpn-network.py
+```
+
 The Kobo tests enforce NickelMenu 0.6.0's timeout limits and execute the shipped
 menu commands and status helper in isolated namespaces with synthetic Wi-Fi,
 daemon and HTTPS responses. They cover missing setup results, stalled commands,

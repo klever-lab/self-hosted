@@ -150,7 +150,8 @@ def fixture():
 
 class VPNNetworkTests(unittest.TestCase):
     def test_initializer_preserves_peers_and_blocks_bypasses(self):
-        result = subprocess.run(['unshare', '--user', '--map-auto', '--map-root-user', '--mount', '--net',
+        namespace = [] if os.geteuid() == 0 else ['--user', '--map-auto', '--map-root-user']
+        result = subprocess.run(['unshare', *namespace, '--mount', '--net',
                                  sys.executable, str(SCRIPT), '--fixture'], capture_output=True, text=True, timeout=100)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

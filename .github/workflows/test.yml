@@ -29,3 +29,7 @@ jobs:
         run: shellcheck althub self-hosted friends-vpn integrations/kobo/*.sh apps/qbittorrent/network.sh
       - name: Run tests
         run: python -m unittest discover -s tests -v
+      - name: Exercise VPN setup in disposable network namespaces
+        run: |
+          sudo modprobe wireguard
+          sudo -- "$(command -v python3)" scripts/test-vpn-network.py

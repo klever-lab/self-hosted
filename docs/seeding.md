@@ -132,11 +132,13 @@ bandwidth limits; its server bitrate limit is a different setting.
 
 ## Local initializer verification (2026-11-17)
 
-`tests/test_vpn_network.py` runs the shipped script in private user, mount and
-network namespaces with synthetic WireGuard keys, a simulated provider and an
+`scripts/test-vpn-network.py` runs the shipped script in private mount and network
+namespaces with synthetic WireGuard keys, a simulated provider and an
 unprivileged application. It requires `iproute2`, `iptables`, `wireguard-tools`,
-`nftables`, `util-linux` and subordinate UID/GID mappings; it fails rather than skips if the
-fixture is unavailable. CI installs the tools and runs it with the unit suite.
+`nftables` and `util-linux`. Rootless runs also need subordinate UID/GID mappings
+and a recent `unshare`. It fails rather than skips if the fixture is unavailable.
+CI runs ordinary unit tests without root, then uses sudo only for this isolated
+packet fixture and loads the WireGuard kernel module explicitly.
 
 The fixture verified incoming TCP and UDP with original source IPs, tunneled DNS,
 unchanged private WebUI access, retry after route changes, endpoint outage and
