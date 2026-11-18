@@ -38,8 +38,6 @@ spec:
   ingress:
     - from:
         - podSelector: {matchLabels: {app: edge}}
-        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: qbittorrent}}
-          podSelector: {matchLabels: {app: book-importer}}
       ports: [{protocol: TCP, port: 8083}]
   egress:
     - to:
@@ -121,6 +119,23 @@ spec:
             - {name: library, mountPath: /books}
             - {name: tools, mountPath: /tools, readOnly: true}
             - {name: tmp, mountPath: /tmp}
+        - name: books-inbox
+          image: ghcr.io/home-operations/sabnzbd:5.1.3@sha256:07790a7829201d9ea302e8b862078beac4b1a07003fe8359e3f069b6bcd84a95
+          command: [python3, -u, /scripts/import_books.py, inbox]
+          env:
+            - {name: CALIBRE_URL, value: 'http://127.0.0.1:8083'}
+            - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 25m, memory: 64Mi}, limits: {cpu: '1', memory: 512Mi}}
+          volumeMounts:
+            - {name: scripts, mountPath: /scripts, readOnly: true}
+            - {name: config, mountPath: /state, subPath: inbox}
+            - {name: book-credentials, mountPath: /credentials, readOnly: true}
+            - {name: storage, mountPath: /storage, readOnly: true}
+            - {name: inbox-tmp, mountPath: /tmp}
       volumes:
         - {name: config, persistentVolumeClaim: {claimName: config}}
         - {name: library, persistentVolumeClaim: {claimName: library}}
@@ -128,3 +143,7 @@ spec:
         - {name: credentials, secret: {secretName: credentials, defaultMode: 0440}}
         - {name: tmp, emptyDir: {sizeLimit: 512Mi}}
         - {name: tools, emptyDir: {sizeLimit: 16Mi}}
+        - {name: scripts, configMap: {name: books-tools}}
+        - {name: book-credentials, secret: {secretName: book-importer, defaultMode: 0440}}
+        - {name: storage, secret: {secretName: books-s3, defaultMode: 0440}}
+        - {name: inbox-tmp, emptyDir: {sizeLimit: 256Mi}}

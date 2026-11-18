@@ -11,45 +11,46 @@ The file gateway mounts downloads read-only, supports byte-range requests, and
 accepts only the Jellyfin edge pod. It has no internet egress. The gateway does
 not change qBittorrent's VPN routing or permit direct internet fallback.
 
-Every two minutes, the importer queries qBittorrent for completed `books` torrents.
-It hashes supported completed book files up to 200 MiB and uploads new content through Calibre-Web's
-authenticated upload endpoint. It has a read-only download mount and a separate
-durable import ledger; Calibre-Web alone owns its library files and database. No
-download volume is shared across namespaces and no library file is edited directly.
+Every two minutes, the qBittorrent publisher queries completed `books` torrents.
+The SABnzbd sidecar reads completed `books` jobs from its local history. Both hash
+supported files up to 200 MiB and publish them to the same private OVH bucket
+under `inbox/<sha256>`. A conditional write lets the first publisher create the
+object. Both publishers verify its hash metadata and size before treating it as
+stored. Torrent originals stay on disk for seeding.
+
+Calibre-Web's sidecar lists the inbox every two minutes, verifies the SHA-256 of
+each downloaded file and submits it through the authenticated upload endpoint.
+Its one import ledger deduplicates across both downloaders and is stored with
+the Calibre-Web configuration. Only Calibre-Web writes its catalog and library.
+The bucket is configured during [setup](../SETUP.md#books-object-storage).
 
 EPUB is the preferred input for Kobo. The importer also accepts KEPUB, PDF, MOBI,
 AZW3, and FB2; importing a format does not convert it into an EPUB. EPUB-to-KEPUB
 conversion is supported by kepubify. General Calibre format conversion is disabled
 because this image's bundled Calibre executables do not run correctly under Alpine.
 
-Original files and torrents stay available for seeding. The SHA-256 ledger prevents
-repeat imports of identical files, including files found in multiple torrents.
-Deleting a library book does not clear its ledger entry or import it again.
+Deleting a library book keeps its import receipt, so a repeated download of
+the same bytes stays excluded. See [Usenet operation](usenet.md) for cart handling.
 
-SABnzbd uses the same uploader in its own namespace, with a read-only mount of its
-download volume and a separate durable ledger. It reads only successful `books`
-jobs after repair and extraction, and confines files to `/downloads/complete/books`.
-Each downloader deduplicates its own files; their ledgers do not deduplicate
-identical downloads across the two services. See [Usenet operation](usenet.md).
-
-Run an import immediately with:
+Publish completed torrents immediately with:
 
 ```bash
 ./self-hosted import-books
 ```
 
-The command prints the Job name and a log command. Inspect scheduled runs with:
+The command prints the Job name. Inspect the publication and the inbox importer with:
 
 ```bash
 kubectl -n qbittorrent get jobs
 kubectl -n qbittorrent logs job/JOB_NAME
+kubectl -n calibre-web logs deploy/calibre-web -c books-inbox
 ```
 
-The uploader commits a `pending` ledger entry before sending data. If a response is
-interrupted, it stops rather than risking duplicate books. Check the Calibre-Web
-library before changing a pending entry in `/state/imports.sqlite3`: mark it
-`imported` with the correct book ID if the upload succeeded, or remove that entry
-to retry after confirming it did not. Suspend the CronJob while repairing the ledger.
+The importer commits a `pending` receipt before submitting a book. Later polls
+leave that digest pending and continue with other books. Verify the matching
+files in Calibre-Web before repairing `/config/inbox/imports.sqlite3`. With the
+Calibre-Web deployment stopped, record the correct book ID if the upload succeeded.
+Remove the pending row only after confirming the upload did not succeed.
 
 ## Gutenberg reading list
 

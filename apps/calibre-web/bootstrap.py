@@ -7,6 +7,7 @@ import sys
 
 os.environ['CALIBRE_DBPATH'] = '/config'
 os.environ['CALIBRE_CONFIG_DIRECTORY'] = '/config/calibre'
+Path('/config/inbox').mkdir(mode=0o700, exist_ok=True)
 # Calibre-Web 0.6.27 recognizes the platform filename, not the image's generic one.
 kepubify = Path('/tools/kepubify-linux-64bit')
 shutil.copyfile('/opt/kepubify/kepubify', kepubify)

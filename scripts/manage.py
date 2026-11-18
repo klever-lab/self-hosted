@@ -9,9 +9,11 @@ import ipaddress
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import socket
 import subprocess
+import sys
 import tarfile
 import time
 import urllib.parse
@@ -20,6 +22,7 @@ import urllib.request
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'integrations/books'))
 STATE = Path(os.environ.get('SELF_HOSTED_OPERATOR_DIR', Path.home() / '.local/state/self-hosted')).expanduser().resolve()
 GUARANINE = Path(os.environ.get('GUARANINE_OPERATOR_DIR', Path.home() / '.local/state/guaranine-kairos')).expanduser()
 APPS = ('qbittorrent', 'calibre-web', 'sabnzbd')
@@ -62,10 +65,8 @@ def secret(namespace, name, values):
             'type': 'Opaque', 'data': {k: base64.b64encode(v.encode()).decode() for k, v in values.items()}}
 
 
-def objects(selected):
+def objects(selected, cfg=None):
     paths = [ROOT / 'apps' / app for app in selected]
-    if {'qbittorrent', 'calibre-web'} <= set(selected):
-        paths.append(ROOT / 'integrations/books')
     items = []
     for path in paths:
         documents = list(yaml.safe_load_all(kube('kustomize', str(path)).stdout))
@@ -76,9 +77,35 @@ def objects(selected):
             if obj['kind'] in ADMISSION_KINDS:
                 obj['metadata'].pop('namespace', None)
             items.append(obj)
-    if 'sabnzbd' in selected:
-        items.append(yaml.safe_load((ROOT / 'apps/sabnzbd/calibre-access.yaml').read_text()))
+    if 'calibre-web' in selected and cfg and cfg.get('calibre_worker'):
+        worker = cfg['calibre_worker']
+        if not re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', worker):
+            raise ValueError('calibre_worker must be a node hostname')
+        for obj in items:
+            if obj['metadata'].get('namespace') != 'calibre-web':
+                continue
+            if obj['kind'] == 'PersistentVolumeClaim':
+                obj['metadata']['name'] += '-' + worker
+            if obj['kind'] == 'Deployment' and obj['metadata']['name'] == 'calibre-web':
+                pod = obj['spec']['template']['spec']
+                pod['nodeSelector'] = {'kubernetes.io/hostname': worker}
+                for volume in pod['volumes']:
+                    if 'persistentVolumeClaim' in volume:
+                        volume['persistentVolumeClaim']['claimName'] += '-' + worker
     return items
+
+
+def books_storage_config():
+    from book_storage import BookStorage
+    try:
+        if (STATE / 'books-s3.json').is_symlink():
+            raise ValueError('Expected a dedicated credential file')
+        saved = load('books-s3.json')
+        values = {field: saved[field] for field in ('bucket', 'region', 'access_key', 'secret_key')}
+        BookStorage(values)
+    except (OSError, KeyError, TypeError, ValueError):
+        raise ValueError('Save dedicated Books bucket credentials in protected books-s3.json. See SETUP.md.') from None
+    return values
 
 
 def enroll(namespace):
@@ -289,9 +316,23 @@ def check_admission(items):
 
 def deploy(cfg, selected):
     access = load('access.json')
+    storage = books_storage_config()
+    book_credentials = {}
+    if 'calibre-web' in selected:
+        book_credentials['calibre-web'] = {'calibre-password': access['import-password']}
+    if 'qbittorrent' in selected:
+        book_credentials['qbittorrent'] = {
+            'qbt-username': access['qbittorrent']['username'], 'qbt-password': access['qbittorrent']['password']}
     if 'sabnzbd' in selected:
-        if 'calibre-web' not in selected:
-            kube('get', 'namespace', 'calibre-web')
+        from althub_api import cart_feed
+        provider = load('usenet.json')
+        try:
+            feed = cart_feed(provider['althub_cart_rss_url'])
+            key = provider['althub_api_key'].strip()
+            if not key:
+                raise ValueError('Empty API key')
+        except (KeyError, TypeError, ValueError, AttributeError):
+            raise ValueError('Save the altHUB API key and cart RSS URL in protected usenet.json. See SETUP.md.') from None
         if 'sabnzbd' not in access:
             access['sabnzbd'] = {'username': access['calibre-web']['username'],
                                  'password': secrets.token_urlsafe(24)}
@@ -299,8 +340,13 @@ def deploy(cfg, selected):
             access['sabnzbd'].setdefault(name, secrets.token_hex(16))
         private_file(STATE / 'access.json', json.dumps(access, indent=2) + '\n')
         private_file(STATE / 'config.json', json.dumps(cfg, indent=2) + '\n')
+        book_credentials['sabnzbd'] = {
+            'sab-api-key': access['sabnzbd']['api-key'], 'althub-api-key': key, 'althub-cart-rss-url': feed}
     fingerprints = {}
-    items = objects(selected)
+    items = objects(selected, cfg)
+    if 'sabnzbd' in selected:
+        from books_recovery import stage_usenet
+        stage_usenet(items, storage, book_credentials['sabnzbd'])
     install_admission(items)
     check_admission_guard(items)
     apply([obj for obj in items if obj['kind'] == 'Namespace'])
@@ -323,6 +369,8 @@ def deploy(cfg, selected):
                     values['frugal-' + name] = value
         fingerprints[app] = hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
         apply([secret(app, 'credentials', values)])
+        apply([secret(app, 'book-importer', book_credentials[app]),
+               secret(app, 'books-s3', {'credentials.json': json.dumps(storage)})])
         apply([gateway(cfg, app)])
         enroll(app)
     if 'qbittorrent' in selected:
@@ -331,13 +379,6 @@ def deploy(cfg, selected):
         fingerprints['qbittorrent'] = hashlib.sha256(
             (fingerprints['qbittorrent'] + json.dumps(vpn_items, sort_keys=True)).encode()
             + (ROOT / 'apps/qbittorrent/network.sh').read_bytes()).hexdigest()
-    if {'qbittorrent', 'calibre-web'} <= set(selected):
-        apply([secret('qbittorrent', 'book-importer', {
-            'qbt-username': access['qbittorrent']['username'], 'qbt-password': access['qbittorrent']['password'],
-            'calibre-password': access['import-password']})])
-    if 'sabnzbd' in selected:
-        apply([secret('sabnzbd', 'book-importer', {
-            'sab-api-key': access['sabnzbd']['api-key'], 'calibre-password': access['import-password']})])
     check_admission(items)
     runtime = [obj for obj in items if obj['kind'] in ('Deployment', 'CronJob')]
     for obj in runtime:
@@ -345,11 +386,20 @@ def deploy(cfg, selected):
             template = obj['spec']['template']
         else:
             template = obj['spec']['jobTemplate']['spec']['template']
-        template.setdefault('metadata', {}).setdefault('annotations', {})['self-hosted/config-sha256'] = fingerprints[obj['metadata']['namespace']]
+        app = obj['metadata']['namespace']
+        fingerprint = fingerprints[app]
+        if obj['kind'] == 'CronJob' or obj['metadata']['name'] in ('calibre-web', 'sabnzbd'):
+            fingerprint = hashlib.sha256((fingerprint + json.dumps(
+                [storage, book_credentials[app]], sort_keys=True)).encode()).hexdigest()
+        template.setdefault('metadata', {}).setdefault('annotations', {})['self-hosted/config-sha256'] = fingerprint
     # Admission checks run after namespaces, credentials, and network isolation exist.
     kube('apply', '--server-side', '--field-manager=self-hosted', '--dry-run=server', '-f', '-',
          data=json.dumps({'apiVersion': 'v1', 'kind': 'List', 'items': runtime}).encode())
     apply(runtime)
+    if 'sabnzbd' in selected:
+        kube('-n', 'sabnzbd', 'rollout', 'status', 'deployment/sabnzbd', '--timeout=300s')
+        kube('-n', 'sabnzbd', 'delete', 'cronjob,networkpolicy', 'book-importer', '--ignore-not-found')
+        kube('-n', 'calibre-web', 'delete', 'networkpolicy', 'sabnzbd-book-importer', '--ignore-not-found')
     for app in selected:
         print(f'{app}: https://{cfg["hostnames"][app]}.{cfg["dns_suffix"]}')
     print('Check ./self-hosted status while images download and the deployments start.')
@@ -389,14 +439,15 @@ def backup(cfg):
             private_file(destination / 'usenet.json', (STATE / 'usenet.json').read_text())
         checksums = {}
         for app in apps:
-            names = ['credentials', 'tailscale-state']
+            names = ['credentials', 'tailscale-state', 'book-importer', 'books-s3']
             if app == 'qbittorrent':
-                names += ['wireguard', 'book-importer']
-            elif app == 'sabnzbd':
-                names += ['book-importer']
-            state = kube('-n', app, 'get', 'secret', *names, '-o', 'json').stdout.decode()
+                names += ['wireguard']
+            state = kube('-n', app, 'get', 'secret', *names, '--ignore-not-found', '-o', 'json').stdout.decode()
             private_file(destination / (app + '-secrets.json'), state)
-            volumes = ('config', 'library') if app == 'calibre-web' else ('config', 'book-import-state')
+            deployment = json.loads(kube('-n', app, 'get', 'deployment', app, '-o', 'json').stdout)
+            volumes = {volume['name']: volume['persistentVolumeClaim']['claimName']
+                       for volume in deployment['spec']['template']['spec']['volumes']
+                       if volume['name'] in ('config', 'library')}
             pod_name = 'state-backup-' + secrets.token_hex(3)
             pod = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': pod_name, 'namespace': app},
                 'spec': {'restartPolicy': 'Never', 'automountServiceAccountToken': False,
@@ -407,7 +458,8 @@ def backup(cfg):
                         'securityContext': {'allowPrivilegeEscalation': False, 'readOnlyRootFilesystem': True, 'capabilities': {'drop': ['ALL']}},
                         'resources': {'requests': {'cpu': '25m', 'memory': '32Mi'}, 'limits': {'cpu': '1', 'memory': '128Mi'}},
                         'volumeMounts': [{'name': v, 'mountPath': '/data/' + v, 'readOnly': True} for v in volumes]}],
-                    'volumes': [{'name': v, 'persistentVolumeClaim': {'claimName': v, 'readOnly': True}} for v in volumes]}}
+                    'volumes': [{'name': v, 'persistentVolumeClaim': {'claimName': claim, 'readOnly': True}}
+                                for v, claim in volumes.items()]}}
             apply([pod])
             maintenance.append((app, pod_name))
             kube('-n', app, 'wait', '--for=condition=Ready', 'pod/' + pod_name, '--timeout=120s')
@@ -463,12 +515,17 @@ def main():
         command = commands.add_parser(name)
         command.add_argument('app', nargs='?', choices=APPS)
     commands.add_parser('credentials')
-    imports = commands.add_parser('import-books')
-    imports.add_argument('app', nargs='?', choices=('qbittorrent', 'sabnzbd'), default='qbittorrent')
+    commands.add_parser('import-books')
     gutenberg = commands.add_parser('import-gutenberg')
     gutenberg.add_argument('--limit', type=int, default=200)
     gutenberg.add_argument('--dry-run', action='store_true')
     commands.add_parser('backup')
+    commands.add_parser('backup-books')
+    move = commands.add_parser('move-books')
+    move.add_argument('worker')
+    restore = commands.add_parser('restore-books')
+    restore.add_argument('snapshot')
+    restore.add_argument('worker')
     args = parser.parse_args()
     if STATE.is_relative_to(ROOT):
         raise ValueError('Operator storage must be outside the checkout')
@@ -492,7 +549,7 @@ def main():
     cfg['hostnames'].setdefault('sabnzbd', 'usenet')
     selected = (args.app,) if getattr(args, 'app', None) else APPS
     if args.command == 'render':
-        print(yaml.safe_dump_all(objects(selected), sort_keys=False))
+        print(yaml.safe_dump_all(objects(selected, cfg), sort_keys=False))
     elif args.command == 'deploy':
         deploy(cfg, selected)
     elif args.command == 'status':
@@ -507,15 +564,25 @@ def main():
             print(f'  Username: {access[app]["username"]}\n  Password: {access[app]["password"]}')
     elif args.command == 'import-books':
         name = 'book-importer-manual-' + secrets.token_hex(3)
-        result = kube('-n', args.app, 'create', 'job', '--from=cronjob/book-importer', name)
+        result = kube('-n', 'qbittorrent', 'create', 'job', '--from=cronjob/book-importer', name)
         print(result.stdout.decode(), end='')
-        print(f'Follow with: kubectl -n {args.app} logs -f job/{name}')
+        print(f'Follow with: kubectl -n qbittorrent logs -f job/{name}')
     elif args.command == 'import-gutenberg':
         from gutenberg import import_books
         import_books(cfg, load('access.json'), STATE, ROOT,
                      limit=args.limit, dry_run=args.dry_run)
     elif args.command == 'backup':
         backup(cfg)
+    elif args.command == 'backup-books':
+        from books_recovery import backup_books
+        backup_books(cfg)
+    elif args.command == 'move-books':
+        from books_recovery import move_books
+        move_books(cfg, args.worker)
+    elif args.command == 'restore-books':
+        from books_recovery import restore as restore_books, storage_client
+        _, storage_config = storage_client()
+        restore_books(cfg, storage_config, args.worker, args.snapshot)
 
 
 if __name__ == '__main__':

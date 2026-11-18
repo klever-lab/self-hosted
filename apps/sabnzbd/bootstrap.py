@@ -1,9 +1,11 @@
 """Initialize the downloader without replacing saved provider or indexer settings."""
 
 from pathlib import Path
+import os
+from urllib.parse import parse_qs, urlsplit
 
 
-def configure(config, credentials):
+def configure(config, credentials, *, books_inbox=False):
     misc = config.setdefault('misc', {})
     misc.update({
         'host': '0.0.0.0', 'port': 8080, 'url_base': '',
@@ -20,6 +22,15 @@ def configure(config, credentials):
     config.setdefault('categories', {}).setdefault('books', {
         'dir': 'books', 'pp': 3, 'script': 'Default', 'priority': 0, 'newzbin': ['Books*'],
     })
+    if books_inbox:
+        for feed in config.get('rss', {}).values():
+            if not isinstance(feed, dict):
+                continue
+            urls = feed.get('uri', [])
+            for url in ([urls] if isinstance(urls, str) else urls):
+                source = urlsplit(url)
+                if source.hostname in ('althub.co.za', 'api.althub.co.za') and parse_qs(source.query).get('t') == ['-2']:
+                    feed['enable'] = 0
     servers = config.setdefault('servers', {})
     # Disabled until the operator supplies the Usenet login in Config > Servers.
     for host, priority, connections in (
@@ -48,7 +59,7 @@ def main():
         secret = Path('/credentials', name)
         if secret.exists():
             credentials[name] = secret.read_text().strip()
-    configure(config, credentials)
+    configure(config, credentials, books_inbox=os.environ.get('BOOKS_INBOX') == '1')
     path.parent.mkdir(parents=True, exist_ok=True)
     path.touch(mode=0o600, exist_ok=True)
     path.chmod(0o600)

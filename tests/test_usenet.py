@@ -6,12 +6,14 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'integrations/books'))
 
 
 def module(name, path):
@@ -93,7 +95,9 @@ class UsenetFilesTests(unittest.TestCase):
                  self.job('failed', status='Failed'), self.job('other', category='other')]
         expected = self.books / 'complete/book.epub'
         with patch.object(importer.requests, 'post', return_value=self.response(slots)) as post:
-            self.assertEqual(list(importer.usenet_files()), [expected])
+            self.assertEqual([file for job in importer.sab_jobs('history')
+                              if job['status'] == 'Completed' and job['category'] == 'books'
+                              for file in importer.usenet_files(job)], [expected])
         self.assertEqual(expected.read_bytes(), b'ebook-content')
         args, kwargs = post.call_args
         self.assertNotIn('private-api-key', args[0])
@@ -102,7 +106,7 @@ class UsenetFilesTests(unittest.TestCase):
     def test_history_pagination_does_not_drop_older_books(self):
         responses = [self.response([self.job('first')], 2), self.response([self.job('second')], 2)]
         with patch.object(importer.requests, 'post', side_effect=responses) as post:
-            self.assertEqual(len(list(importer.usenet_files())), 2)
+            self.assertEqual(len(list(importer.sab_jobs('history'))), 2)
         self.assertEqual([call.kwargs['data']['start'] for call in post.call_args_list], [0, 1])
 
     def test_successful_jobs_cannot_read_outside_books_or_follow_escaping_symlinks(self):
@@ -116,7 +120,7 @@ class UsenetFilesTests(unittest.TestCase):
                 job = {'category': 'books', 'status': 'Completed', 'storage': storage}
                 with patch.object(importer.requests, 'post', return_value=self.response([job])):
                     with self.assertRaisesRegex(RuntimeError, 'outside'):
-                        list(importer.usenet_files())
+                        list(importer.usenet_files(job))
 
     def test_missing_files_and_api_errors_cannot_silently_succeed(self):
         jobs = [{'category': 'books', 'status': 'Completed', 'storage': ''},
@@ -124,12 +128,12 @@ class UsenetFilesTests(unittest.TestCase):
         for job in jobs:
             with self.subTest(job=job), patch.object(importer.requests, 'post', return_value=self.response([job])):
                 with self.assertRaises(RuntimeError):
-                    list(importer.usenet_files())
+                    list(importer.usenet_files(job))
         response = Mock()
         response.json.return_value = {'error': 'API key incorrect'}
         with patch.object(importer.requests, 'post', return_value=response):
             with self.assertRaisesRegex(RuntimeError, 'history'):
-                list(importer.usenet_files())
+                list(importer.sab_jobs('history'))
 
 
 class ImportReceiptTests(unittest.TestCase):
@@ -148,7 +152,6 @@ class ImportReceiptTests(unittest.TestCase):
         self.session.post.return_value = response
         for mocked in (patch.object(importer, 'LEDGER', self.ledger),
                        patch.object(importer, 'read_secret', return_value='private-password'),
-                       patch.object(importer, 'usenet_files', side_effect=lambda: iter(self.files)),
                        patch.object(importer.requests, 'Session', return_value=self.session),
                        patch.dict(os.environ, {'SABNZBD_URL': 'http://sabnzbd', 'CALIBRE_URL': 'http://calibre'})):
             mocked.start()
@@ -157,9 +160,15 @@ class ImportReceiptTests(unittest.TestCase):
     def uploads(self):
         return [call for call in self.session.post.call_args_list if call.args[0].endswith('/upload')]
 
+    def import_files(self):
+        with importer.open_ledger(self.ledger) as ledger:
+            url = importer.connect_calibre(self.session)
+            for file in self.files:
+                importer.import_book(self.session, url, ledger, file, importer.sha256(file))
+
     def test_identical_downloads_and_later_runs_upload_only_once(self):
-        importer.main()
-        importer.main()
+        self.import_files()
+        self.import_files()
         self.assertEqual(len(self.uploads()), 1)
         with sqlite3.connect(self.ledger) as ledger:
             self.assertEqual(ledger.execute('SELECT status, book_id FROM imports').fetchall(), [('imported', 42)])
@@ -173,11 +182,11 @@ class ImportReceiptTests(unittest.TestCase):
             return Mock(url='http://calibre/')
         self.session.post.side_effect = post
         with self.assertRaises(importer.requests.ConnectionError):
-            importer.main()
+            self.import_files()
         with sqlite3.connect(self.ledger) as ledger:
             self.assertEqual(ledger.execute('SELECT status FROM imports').fetchall(), [('pending',)])
         with self.assertRaisesRegex(RuntimeError, 'interrupted upload'):
-            importer.main()
+            self.import_files()
         self.assertEqual(len(self.uploads()), 1)
 
 
@@ -202,7 +211,9 @@ class BackupRecoveryTests(unittest.TestCase):
                 elif args[2:4] == ('get', 'jobs'):
                     payload = {'items': []}
                 elif args[2:4] == ('get', 'deployment'):
-                    payload = {'spec': {'replicas': 1}}
+                    payload = {'spec': {'replicas': 1, 'template': {'spec': {'volumes': [
+                        {'name': 'config', 'persistentVolumeClaim': {'claimName': 'config'}},
+                    ]}}}}
                 return SimpleNamespace(stdout=json.dumps(payload).encode(), stderr=b'', returncode=0)
 
             with patch.object(manage, 'STATE', state), patch.object(manage, 'kube', side_effect=kube), \

@@ -3,7 +3,7 @@
 altHUB is the indexer: it supplies search results and NZB instructions. Frugal is
 the provider: SABnzbd authenticates to its servers to retrieve the actual data.
 The two accounts are independent. SABnzbd downloads, verifies, repairs and unpacks
-jobs before the book importer uploads supported files to Calibre-Web.
+jobs before publishing supported files to the Books inbox.
 
 ## Operator CLI
 
@@ -67,31 +67,22 @@ selecting category `books`. EPUB is preferred for Kobo. The importer also accept
 KEPUB, PDF, MOBI, AZW3 and FB2 up to 200 MiB per file. Import does not convert formats.
 Files in other categories, failed jobs and jobs still unpacking are ignored.
 
-Every two minutes the importer reads the complete SABnzbd history, including older
-pages, and uploads new book files through Calibre-Web's authenticated endpoint.
-The library is never mounted in the downloader or edited directly. Existing Kobo
-pairing and library accounts remain in Calibre-Web.
+Every two minutes the Books sidecar reads SABnzbd's history, including older
+pages, publishes new book files to OVH, and polls the altHUB cart. Calibre-Web
+imports from the [shared inbox](media-imports.md).
 
 Keep the `books` category's destination at `/downloads/complete/books`, with a
-separate directory for each job. Do not clear completed history or delete payloads
-until their books appear in the library. Successful history entries whose files
-have been removed must be cleared manually after confirming the library import;
-the importer stops on missing files rather than silently reporting success.
-
-Run immediately or inspect scheduled imports with:
+separate directory for each job. Preserve completed history until the sidecar
+records the job in OVH. Inspect transfer and cart handling with:
 
 ```bash
-./self-hosted import-books sabnzbd
-kubectl -n sabnzbd get jobs
-kubectl -n sabnzbd logs job/JOB_NAME
+kubectl -n sabnzbd logs deploy/sabnzbd -c books-inbox
 ```
 
-Original downloads remain on the Usenet volume. Its ledger is independent of the
-torrent import ledger: identical files are uploaded once per downloader, but
-downloading the same file through both services can create duplicate library
-entries. A `pending` receipt means an interrupted upload needs review; follow the
-[import receipt recovery procedure](media-imports.md), using the `sabnzbd`
-namespace and its `/state/imports.sqlite3`.
+SABnzbd's `/downloads` is temporary pod storage. Provider settings, queue
+metadata, and history remain on the configuration claim. A pod replacement can
+discard local partial downloads. An unfinished cart release remains in the cart
+and can be submitted again after SABnzbd has recovered its queue.
 
 ## Frugal servers
 
@@ -108,16 +99,15 @@ SABnzbd connects over verified TLS directly to the provider. Its public egress i
 limited to TCP 563 for Usenet and TCP 443 for HTTPS, plus cluster DNS. It runs
 without the qBittorrent VPN sidecar or elevated capabilities.
 
-## Optional altHUB cart feed
+## altHUB cart processing
 
-Manual NZB uploads work without storing the altHUB API key in SABnzbd. To have
-SABnzbd fetch selected NZBs itself, copy the private **cart RSS URL** from altHUB
-into **Config → RSS**, assign `books`, and use that cart only for books. Enable
-automatic processing and check the feed preview before adding more items.
-SABnzbd skips the first feed batch by default; explicitly select the intended
-items if importing that initial cart. Use the cart feed rather than an unrestricted
-latest-releases feed. See [SABnzbd RSS behavior](https://sabnzbd.org/wiki/configuration/5.1/rss).
+Use the altHUB cart for books. The Books sidecar reads its private RSS feed with
+delete-on-grab disabled and submits NZBs with stable release IDs. It checks
+SABnzbd's queue and OVH receipts before submitting. A failed download stays in
+the cart and has a 15-minute retry delay.
 
-Provider credentials and private feed URLs are retained in the configuration PVC
-and included in protected backups. Keep API keys and downloaded account files
-outside Git. Deployment instructions belong in [SETUP.md](../SETUP.md).
+After publishing and verifying every book file, the sidecar writes a durable
+receipt for the release and removes that exact cart entry. A failed cart removal
+can be retried from its receipt. Manual jobs with no known release ID get a SABnzbd
+job receipt. The initializer disables the corresponding built-in cart RSS feed
+to keep a single poller. See [setup](../SETUP.md#usenet-setup) for credentials.

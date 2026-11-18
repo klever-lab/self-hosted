@@ -72,8 +72,11 @@ def main():
     mutate('VPN in unrelated workload', lambda p: p['metadata']['labels'].update(app='fake-workload'))
     mutate('VPN command override', lambda p: vpn(p).update(command=['/bin/sh', '-c', 'sleep 3600']))
     mutate('VPN args override', lambda p: vpn(p).update(args=['malicious']))
-    mutate('VPN lifecycle command', lambda p: vpn(p).update(lifecycle={'postStart': {'exec': {'command': ['sh', '-c', 'true']}}}))
-    mutate('VPN probe command', lambda p: vpn(p).update(readinessProbe={'exec': {'command': ['sh', '-c', 'true']}}))
+    # Kubernetes only accepts lifecycle and probe fields on restartable init containers.
+    mutate('VPN lifecycle command', lambda p: vpn(p).update(
+        restartPolicy='Always', lifecycle={'postStart': {'exec': {'command': ['true']}}}))
+    mutate('VPN probe command', lambda p: vpn(p).update(
+        restartPolicy='Always', readinessProbe={'exec': {'command': ['true']}}))
     mutate('VPN preload environment', lambda p: vpn(p).update(env=[{'name': 'LD_PRELOAD', 'value': '/tmp/evil.so'}]))
     mutate('VPN imported environment', lambda p: vpn(p).update(envFrom=[{'configMapRef': {'name': 'edge-config'}}]))
     mutate('VPN script override', lambda p: next(v for v in p['spec']['volumes'] if v['name'] == 'network')['configMap'].update(name='other-script'))

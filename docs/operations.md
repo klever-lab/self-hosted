@@ -66,13 +66,51 @@ see [Kobo access requirements](kobo.md) before configuring a reader.
 
 ## Storage
 
-qBittorrent requests 1 GiB for configuration and 200 GiB for downloads. Its import
-ledger requests 1 GiB. Calibre-Web requests 1 GiB for configuration and 20 GiB for
-the library. SABnzbd requests 1 GiB each for configuration and its import ledger,
-and 20 GiB for downloads. OpenEBS retains volumes on claim deletion. These are declarations,
-not enforced disk quotas; monitor the worker's free space. The volumes are local
-and do not follow workloads to another worker. See Guaranine's
-[storage guide](https://github.com/klever-lab/guaranine/blob/main/docs/storage.md).
+qBittorrent requests 1 GiB for configuration and 200 GiB for downloads.
+Calibre-Web requests 1 GiB for configuration and 20 GiB for the library. The
+operator's `calibre_worker` setting binds both Books volumes to the selected
+worker by using claims named `config-WORKER` and `library-WORKER`. SABnzbd
+requests 1 GiB of durable configuration and caps its temporary download volume
+at 20 GiB. OpenEBS preserves local volumes on claim deletion. Monitor free
+space on the backing disk. [Guaranine storage guide](https://github.com/klever-lab/guaranine/blob/main/docs/storage.md)
+
+### Books snapshots and relocation
+
+```bash
+./self-hosted backup-books
+./self-hosted move-books wild
+```
+
+`backup-books` briefly stops the Books writer and suspends the importer
+schedules during the archive. It pauses active qBittorrent seeds for export
+and upload, and resumes those same torrents after the upload completes or an
+error occurs. It publishes a SHA-256-verified archive and its manifest under
+`backups/` in the private Books bucket. The archive includes the Calibre catalog,
+book files, accounts, Kobo pairing and reading state. The initial snapshot also
+carries the former import ledgers for deduplication.
+
+`move-books` takes the backup first and keeps the source writer stopped until
+cutover. It downloads the archive from OVH on the destination worker, verifies
+the checksum, checks both SQLite databases and starts Calibre-Web on the new
+claims behind the existing Books HTTPS gateway. It keeps old claims available
+for rollback. qBittorrent seeds during the destination restore and validation.
+
+To stage a known snapshot on an available worker, run
+`./self-hosted restore-books SNAPSHOT_ID WORKER`. It verifies and loads empty
+claims without starting a Books writer. When replacing a failed worker, fence
+it, set `calibre_worker` in private `config.json`, and deploy Calibre-Web.
+Check the catalog, import sidecar and Kobo sync before retiring old storage.
+
+The first move installs the qBittorrent inbox publisher before exporting
+Calibre-Web and leaves the former SABnzbd importer suspended after the restore.
+Deploy SABnzbd after verifying Books. Its deploy checks the queue and stages
+completed jobs from the retained downloads claim before updating SABnzbd, then
+removes the superseded importer and ingress rule. Retain the old downloads and
+import-ledger claims through verification.
+
+The staging check allows empty URL grabs with a unique title match in the live
+cart and leaves their entries there for the new downloader. Drain other queued
+work before the storage switch.
 
 ## Backups
 

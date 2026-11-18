@@ -7,11 +7,11 @@ Guaranine owns the Kubernetes platform. This repository owns the applications.
   Windscribe kernel WireGuard tunnel (`wg0` interface binding and kill switch).
 - **Calibre-Web / K Books:** authenticated HTTPS library, EPUB/KEPUB support, and
   per-user Kobo sync. The library is available only through Tailscale.
-- **SABnzbd:** private HTTPS Usenet downloader with verified TLS, retained downloads,
+- **SABnzbd:** private HTTPS Usenet downloader with verified TLS, temporary downloads,
   and Frugal primary/bonus server presets. Provider access and an NZB indexer are separate accounts.
   The `./althub` operator CLI searches the indexer, inspects file formats and manages its cart.
-- **Book importer:** completed downloads in either downloader's `books` category are
-  uploaded to Calibre-Web every two minutes. Original downloads are retained.
+- **Books inbox:** both downloaders publish completed books to a private OVH bucket.
+  Calibre-Web checks the inbox every two minutes. Torrent payloads stay available for seeding.
 - **Jellyfin file gateway:** read-only access to download payloads for the separately
   managed Jellyfin integration. Original files remain on the download volume.
 - **Gutenberg reading list:** a fixed selection of 200 English classics from

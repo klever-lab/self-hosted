@@ -16,13 +16,6 @@ spec:
   resources: {requests: {storage: 1Gi}}
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata: {name: downloads}
-spec:
-  accessModes: [ReadWriteOnce]
-  resources: {requests: {storage: 20Gi}}
----
-apiVersion: v1
 kind: Service
 metadata: {name: sabnzbd}
 spec:
@@ -38,7 +31,6 @@ spec:
   ingress:
     - from:
         - podSelector: {matchLabels: {app: edge}}
-        - podSelector: {matchLabels: {app: book-importer}}
       ports: [{protocol: TCP, port: 8080}]
   egress:
     - to:
@@ -84,6 +76,8 @@ spec:
         - name: configure
           image: ghcr.io/home-operations/sabnzbd:5.1.3@sha256:07790a7829201d9ea302e8b862078beac4b1a07003fe8359e3f069b6bcd84a95
           command: [python3, /bootstrap/bootstrap.py]
+          env:
+            - {name: BOOKS_INBOX, value: '1'}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -112,9 +106,29 @@ spec:
             - {name: config, mountPath: /config}
             - {name: downloads, mountPath: /downloads}
             - {name: tmp, mountPath: /tmp}
+        - name: books-inbox
+          image: ghcr.io/home-operations/sabnzbd:5.1.3@sha256:07790a7829201d9ea302e8b862078beac4b1a07003fe8359e3f069b6bcd84a95
+          command: [python3, -u, /scripts/import_books.py, usenet]
+          env:
+            - {name: SABNZBD_URL, value: 'http://127.0.0.1:8080'}
+            - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {requests: {cpu: 25m, memory: 32Mi}, limits: {cpu: '1', memory: 256Mi}}
+          volumeMounts:
+            - {name: scripts, mountPath: /scripts, readOnly: true}
+            - {name: downloads, mountPath: /downloads, readOnly: true}
+            - {name: books-credentials, mountPath: /credentials, readOnly: true}
+            - {name: storage, mountPath: /storage, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
       volumes:
         - {name: config, persistentVolumeClaim: {claimName: config}}
-        - {name: downloads, persistentVolumeClaim: {claimName: downloads}}
+        - {name: downloads, emptyDir: {sizeLimit: 20Gi}}
         - {name: bootstrap, configMap: {name: sabnzbd-bootstrap}}
         - {name: credentials, secret: {secretName: credentials, defaultMode: 0440}}
+        - {name: scripts, configMap: {name: books-tools}}
+        - {name: books-credentials, secret: {secretName: book-importer, defaultMode: 0440}}
+        - {name: storage, secret: {secretName: books-s3, defaultMode: 0440}}
         - {name: tmp, emptyDir: {sizeLimit: 128Mi}}

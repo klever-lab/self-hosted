@@ -2,6 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: calibre-web
 resources: [stack.yaml, ../../components/edge]
+components: [../../integrations/books]
 configMapGenerator:
   - name: calibre-bootstrap
     files: [bootstrap.py, empty-library.db]

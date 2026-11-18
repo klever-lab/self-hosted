@@ -21,7 +21,7 @@ the Guaranine operator directory and is used only for single-use gateway enrollm
    Protected settings live in `~/.local/state/self-hosted` by default; select another location
    with `SELF_HOSTED_OPERATOR_DIR`. Use `GUARANINE_OPERATOR_DIR` for a nondefault
    Guaranine operator directory.
-3. Inspect and deploy:
+3. Configure [Books object storage](#books-object-storage), then inspect and deploy:
 
    ```bash
    ./self-hosted render > /tmp/self-hosted.yaml
@@ -69,10 +69,30 @@ To deploy an application independently:
 ./self-hosted deploy sabnzbd
 ```
 
-Deploying qBittorrent and Calibre-Web together also installs their book-import integration.
-SABnzbd includes its own importer and expects Calibre-Web to be deployed already,
-or in the same deployment. The shared
-`components/edge` directory contains the userspace Tailscale gateway resources.
+Each application can deploy independently against the same Books bucket.
+Set up credentials before the first deploy. The shared `components/edge`
+directory contains the userspace Tailscale gateway resources.
+
+## Books object storage
+
+Create a dedicated private, versioned OVH Object Storage bucket with SSE-S3.
+Create an Object Storage user scoped to that bucket, with
+`s3:ListBucket`, `s3:GetObject` and `s3:PutObject`. Use a different user
+to administer the bucket and its retention. Save the new user's credentials as
+`books-s3.json` in the private operator directory, mode `0600`:
+
+```json
+{
+  "bucket": "YOUR_DEDICATED_BOOKS_BUCKET",
+  "region": "bhs",
+  "access_key": "YOUR_ACCESS_KEY",
+  "secret_key": "YOUR_SECRET_KEY"
+}
+```
+
+Use this bucket only for book files, receipts and Books snapshots. All three
+deploy commands require this configuration. The deploy command copies it into
+the application namespaces as a Kubernetes Secret. [OVH storage access management](https://docs.ovhcloud.com/en/guides/storage-and-backup/object-storage/s3-identity-and-access-management)
 
 ## Public Friends VPN
 
@@ -181,9 +201,10 @@ The initializer configures `news.frugalusenet.com` at priority 0 and
 Without local provider credentials these presets remain disabled until configured
 in the UI. Saved provider and RSS settings are retained on restart. When
 `usenet.json` is present it is authoritative for the two Frugal logins.
-Add `althub_api_key` there to use the `./althub` operator CLI for searches, NZB
-file inspection and cart changes. See [CLI usage](docs/usenet.md#operator-cli).
-Manually uploading an NZB to SABnzbd does not need that key.
+Save `althub_api_key` and `althub_cart_rss_url` in the same private file
+for the Books sidecar. Use the cart RSS URL copied from the authenticated altHUB
+page. The sidecar reads the feed and removes entries after checking OVH receipts.
+See [CLI usage](docs/usenet.md#operator-cli).
 
 Deploy and check SABnzbd independently with:
 
@@ -193,10 +214,11 @@ Deploy and check SABnzbd independently with:
 ./self-hosted status sabnzbd
 ```
 
-Search the indexer, download an NZB, then add it to SABnzbd under the `books`
-category. Successful, unpacked books are uploaded into the existing Calibre-Web
-library automatically. See [Usenet operation](docs/usenet.md) for the supported
-formats, history requirements and optional cart RSS workflow.
+Select books through the altHUB cart or manually add an NZB under the `books`
+category. Successful, unpacked books reach Calibre-Web through OVH. The first
+deployment over an existing retained download claim checks that the SABnzbd queue
+has drained and publishes completed books before switching to temporary storage.
+See [Usenet operation](docs/usenet.md) for details.
 
 To change qBittorrent's VPN server, replace the profile referenced by
 `wireguard_profile` in the protected `config.json`, keeping it outside the checkout
