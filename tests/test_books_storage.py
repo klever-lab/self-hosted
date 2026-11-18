@@ -95,6 +95,14 @@ class ConditionalWrites(unittest.TestCase):
         self.assertNotIn('--location', run.call_args.args[0])
         self.assertIn('test-secret', run.call_args.kwargs['input'])
 
+    def test_curl_upload_treats_brackets_in_filenames_literally(self):
+        source = self.file.with_name('Book [EPUB].epub')
+        with patch('book_storage.subprocess.run', return_value=Mock(returncode=0, stdout='\n200')) as run:
+            self.storage.request('PUT', 'inbox/test', source=source)
+        args = run.call_args.args[0]
+        self.assertIn('--globoff', args)
+        self.assertEqual(args[args.index('--upload-file') + 1], str(source))
+
 
 class CartTests(unittest.TestCase):
     identifier = 'a' * 32

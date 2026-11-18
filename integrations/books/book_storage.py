@@ -25,7 +25,7 @@ class BookStorage:
         url = self.url + '/' + quote(key, safe='/') if key else self.url
         if params:
             url += '?' + urlencode(params, quote_via=quote)
-        commands = ['curl', '--disable', '--silent', '--show-error', '--noproxy', '*',
+        commands = ['curl', '--disable', '--globoff', '--silent', '--show-error', '--noproxy', '*',
                     '--proto', '=https', '--connect-timeout', '10', '--max-time', '3600',
                     '--speed-limit', '128', '--speed-time', '60',
                     '--aws-sigv4', f'aws:amz:{self.region}:s3', '--config', '-',
