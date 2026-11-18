@@ -1,5 +1,6 @@
 """Exercise duplicate uploads, cart recovery and verified snapshot restores."""
 
+import base64
 from collections import defaultdict
 import json
 from pathlib import Path
@@ -223,6 +224,44 @@ class RestoreTests(unittest.TestCase):
             restore_books.restore(self.storage, self.name, self.target)
         self.assertEqual(list((self.target / 'config').iterdir()), [])
         self.assertEqual(list((self.target / 'library').iterdir()), [])
+
+
+class UsenetStagingTests(unittest.TestCase):
+    def test_staging_mounts_its_own_credentials_on_the_importer_path(self):
+        existing_downloads = {'name': 'downloads', 'persistentVolumeClaim': {'claimName': 'downloads'}}
+        live = {'spec': {'template': {'spec': {'volumes': [existing_downloads]}}}}
+        template = {
+            'securityContext': {},
+            'containers': [{'name': 'books-inbox', 'volumeMounts': [
+                {'name': 'downloads', 'mountPath': '/downloads'},
+                {'name': 'books-credentials', 'mountPath': '/credentials'},
+            ]}],
+            'volumes': [
+                {'name': 'downloads', 'emptyDir': {}},
+                {'name': 'books-credentials', 'secret': {'secretName': 'book-importer'}},
+            ],
+        }
+        items = [
+            {'kind': 'Deployment', 'metadata': {'name': 'sabnzbd'},
+             'spec': {'template': {'spec': template}}},
+            {'kind': 'NetworkPolicy', 'metadata': {'name': 'sabnzbd'}, 'spec': {'egress': []}},
+            {'kind': 'ConfigMap', 'metadata': {'name': 'books-tools-fixture', 'namespace': 'sabnzbd'}},
+        ]
+        applied = []
+        credentials = {'althub-api-key': 'fixture'}
+        with patch.object(books_recovery, 'kube_json', side_effect=[live, {'status': {'phase': 'Succeeded'}}]), \
+                patch.object(books_recovery.manage, 'dry_run_pod'), \
+                patch.object(books_recovery.manage, 'apply', side_effect=applied.extend), \
+                patch.object(books_recovery.manage, 'kube', return_value=Mock(stdout=b'')):
+            books_recovery.stage_usenet(items, {}, credentials)
+        pod = next(item for item in applied if item['kind'] == 'Pod')
+        name = pod['metadata']['name']
+        volumes = {item['name']: item for item in pod['spec']['volumes']}
+        self.assertEqual(volumes['books-credentials']['secret']['secretName'], name)
+        self.assertEqual(volumes['downloads']['persistentVolumeClaim'],
+                         {'claimName': 'downloads', 'readOnly': True})
+        secret = next(item for item in applied if item['kind'] == 'Secret' and item['metadata']['name'] == name)
+        self.assertEqual({key: base64.b64decode(value).decode() for key, value in secret['data'].items()}, credentials)
 
 
 class SeedPauseTests(unittest.TestCase):

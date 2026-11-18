@@ -273,10 +273,12 @@ def stage_usenet(items, storage_config, credentials):
     name = 'books-stage-' + secrets.token_hex(4)
     labels = {'app': 'book-importer', 'books-stage': 'true'}
     mounts = {mount['name'] for mount in container['volumeMounts']}
-    volumes = [vol for vol in template['volumes'] if vol['name'] in mounts - {'downloads', 'book-credentials'}]
+    credentials_volume = next(mount['name'] for mount in container['volumeMounts']
+                              if mount['mountPath'] == '/credentials')
+    volumes = [vol for vol in template['volumes'] if vol['name'] in mounts - {'downloads', credentials_volume}]
     volumes.extend([
         {'name': 'downloads', 'persistentVolumeClaim': {**legacy, 'readOnly': True}},
-        {'name': 'book-credentials', 'secret': {'secretName': name, 'defaultMode': 0o440}},
+        {'name': credentials_volume, 'secret': {'secretName': name, 'defaultMode': 0o440}},
     ])
     pod = {'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': name, 'namespace': namespace, 'labels': labels},
            'spec': {'automountServiceAccountToken': False, 'activeDeadlineSeconds': 3600,
