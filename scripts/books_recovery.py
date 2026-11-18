@@ -158,13 +158,15 @@ def books_quiet(leave_suspended=()):
         yield deployment
         completed = True
     finally:
-        if old_count:
-            manage.kube('-n', APP, 'scale', 'deployment/' + APP, '--replicas=' + str(old_count))
-            manage.kube('-n', APP, 'rollout', 'status', 'deployment/' + APP, '--timeout=240s')
-        for namespace in paused:
-            if not completed or namespace not in leave_suspended:
-                manage.kube('-n', namespace, 'patch', 'cronjob', 'book-importer',
-                            '--type=merge', '-p', '{"spec":{"suspend":false}}')
+        try:
+            if old_count:
+                manage.kube('-n', APP, 'scale', 'deployment/' + APP, '--replicas=' + str(old_count))
+                manage.kube('-n', APP, 'rollout', 'status', 'deployment/' + APP, '--timeout=240s')
+        finally:
+            for namespace in paused:
+                if not completed or namespace not in leave_suspended:
+                    manage.kube('-n', namespace, 'patch', 'cronjob', 'book-importer',
+                                '--type=merge', '-p', '{"spec":{"suspend":false}}')
 
 
 def legacy_receipts():
@@ -197,7 +199,7 @@ def backup(cfg, storage, deployment):
     else:
         receipts = legacy_receipts()
     archive = work / 'books.tar.gz'
-    with pause_seeds(cfg, work), maintenance(APP, claims) as pod:
+    with maintenance(APP, claims) as pod, pause_seeds(cfg, work):
         counts = manage.kube('-n', APP, 'exec', pod, '--', 'python3', '-c', """
 import json
 import sqlite3

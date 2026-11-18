@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import signal
 import socket
 import subprocess
 import sys
@@ -505,6 +506,10 @@ def backup(cfg):
     print(f'Verified application-state and book-library backup: {destination}')
 
 
+def interrupt_books(signum, _frame):
+    raise RuntimeError(f'Books operation interrupted by {signal.Signals(signum).name}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
@@ -527,6 +532,9 @@ def main():
     restore.add_argument('snapshot')
     restore.add_argument('worker')
     args = parser.parse_args()
+    if args.command in ('backup-books', 'move-books', 'restore-books'):
+        signal.signal(signal.SIGINT, interrupt_books)
+        signal.signal(signal.SIGTERM, interrupt_books)
     if STATE.is_relative_to(ROOT):
         raise ValueError('Operator storage must be outside the checkout')
     STATE.mkdir(mode=0o700, parents=True, exist_ok=True)

@@ -75,11 +75,10 @@ directory contains the userspace Tailscale gateway resources.
 
 ## Books object storage
 
-Create a dedicated private, versioned OVH Object Storage bucket with SSE-S3.
-Create an Object Storage user scoped to that bucket, with
-`s3:ListBucket`, `s3:GetObject` and `s3:PutObject`. Use a different user
-to administer the bucket and its retention. Save the new user's credentials as
-`books-s3.json` in the private operator directory, mode `0600`:
+Use the [Guaranine storage Terraform root](https://github.com/klever-lab/guaranine/blob/main/SETUP.md#scoped-ovh-storage-users)
+to provision the private, encrypted, versioned Books bucket and its scoped app
+user. Save its sensitive `books_credentials` output as `books-s3.json` in the
+private operator directory with mode `0600`. The JSON has these fields:
 
 ```json
 {
@@ -92,7 +91,7 @@ to administer the bucket and its retention. Save the new user's credentials as
 
 Use this bucket only for book files, receipts and Books snapshots. All three
 deploy commands require this configuration. The deploy command copies it into
-the application namespaces as a Kubernetes Secret. [OVH storage access management](https://docs.ovhcloud.com/en/guides/storage-and-backup/object-storage/s3-identity-and-access-management)
+the application namespaces as a Kubernetes Secret.
 
 ## Public Friends VPN
 
