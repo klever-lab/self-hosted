@@ -17,7 +17,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 )
 
-const portalOrigin = "https://vpn.bahasadri.com"
+const portalOrigin = "https://vpn.klever.lol"
 
 //go:embed web/index.html web/favicon.png web/portal.css web/portal.js web/qrcode.mjs
 var site embed.FS

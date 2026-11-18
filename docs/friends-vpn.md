@@ -29,7 +29,7 @@ also editable in the Cloudflare dashboard.
 Repeated invitations for the same address leave one rule. Work on the list from
 one admin session at a time, since Cloudflare updates the whole set of rules.
 
-At [vpn.bahasadri.com](https://vpn.bahasadri.com), the friend names each device
+At [vpn.klever.lol](https://vpn.klever.lol), the friend names each device
 and selects **Create and activate**. **Ready to import** means the gateway
 confirmed activation. They can download the `.conf` on the device that needs
 it or show a QR code for the WireGuard app on another device. Import it in the

@@ -8,8 +8,8 @@ from urllib.request import Request, urlopen
 
 from friends_vpn_inventory import email_address
 
-HOST = 'vpn.bahasadri.com'
-ZONE = 'bahasadri.com'
+HOST = 'vpn.klever.lol'
+ZONE = 'klever.lol'
 URL = 'https://' + HOST
 TUNNEL = 'friends-vpn-guaranine'
 APP = 'Friends VPN'

@@ -17,7 +17,7 @@ Guaranine owns the Kubernetes platform. This repository owns the applications.
 - **Gutenberg reading list:** a fixed selection of 200 English classics from
   The Greatest Books ranking, imported on demand into the same library.
 - **Friends VPN:** public WireGuard access with a separate client profile per
-  device, self-service enrollment at `vpn.bahasadri.com`, and a dedicated
+  device, self-service enrollment at `vpn.klever.lol`, and a dedicated
   Windscribe tunnel for internet traffic.
 
 Each application has its own namespace, storage, access policies, and deployment.

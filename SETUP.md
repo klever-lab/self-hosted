@@ -119,13 +119,13 @@ and revocations take effect on the running WireGuard interface. See
 ### Friends VPN portal
 
 The portal runs beside the gateway on Guaranine. Its `cloudflared` container
-publishes `https://vpn.bahasadri.com` and Cloudflare Access sends one-time email
+publishes `https://vpn.klever.lol` and Cloudflare Access sends one-time email
 codes to approved addresses. WireGuard clients keep using UDP `31820` on the
 controller. The CLI downloads the executable from the public repository's
 GitHub Releases, verifies its pinned SHA-256, and stages it in Kubernetes.
 The gateway and portal run that executable in a digest-pinned Alpine image.
 
-1. Confirm that the Cloudflare account owns the active `bahasadri.com` DNS zone
+1. Confirm that the Cloudflare account owns the active `klever.lol` DNS zone
    and its Zero Trust team has the One-time PIN login method. Create a scoped
    account API token using the following dashboard permissions.
 
@@ -135,8 +135,8 @@ The gateway and portal run that executable in a digest-pinned Alpine image.
    | Account | Access: Apps and Policies | Edit |
    | Account | Access: Policies, when listed separately | Edit |
    | Account | Access: Organizations, Identity Providers, and Groups | Edit |
-   | `bahasadri.com` zone | DNS | Edit |
-   | `bahasadri.com` zone | Zone | Read |
+   | `klever.lol` zone | DNS | Edit |
+   | `klever.lol` zone | Zone | Read |
 
 2. Save the token in `cloudflare-api-token` in the protected `friends-vpn/`
    operator directory with mode `0600`, then run these commands.
